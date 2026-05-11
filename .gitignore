@@ -1,0 +1,26 @@
+# Configurações internas do editor
+.claude/
+
+# Dependências
+node_modules/
+reservas-ti-frontend/node_modules/
+
+# Variáveis de ambiente (NUNCA subir para o git!)
+.env
+.env.local
+.env.production
+
+# Dumps de banco de dados
+*.sql.bak
+dump_*.sql
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build do frontend
+reservas-ti-frontend/dist/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
