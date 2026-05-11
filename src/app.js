@@ -1,3 +1,6 @@
+import { setDefaultResultOrder } from 'node:dns';
+setDefaultResultOrder('ipv4first'); // Evita ENETUNREACH em hosts sem IPv6 (ex.: Render)
+
 import express from 'express';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
