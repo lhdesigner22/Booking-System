@@ -87,7 +87,7 @@ export default function Sidebar() {
 
   function sair() {
     logout();
-    navigate('/login');
+    window.location.replace('/login');
   }
 
   const links = [
