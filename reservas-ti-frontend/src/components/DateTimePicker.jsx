@@ -1,61 +1,42 @@
-/**
- * DateTimePicker — seletor de data + hora intuitivo
- * Separa o calendário nativo (date) de um select de horários (HH:MM)
- * Value/onChange usam o formato ISO: "YYYY-MM-DDTHH:MM"
- */
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { ptBR } from 'date-fns/locale/pt-BR';
+import 'react-datepicker/dist/react-datepicker.css';
 
-const HORARIOS = (() => {
-  const slots = [];
-  for (let h = 6; h <= 23; h++) {
-    slots.push(`${String(h).padStart(2, '0')}:00`);
-    slots.push(`${String(h).padStart(2, '0')}:30`);
-  }
-  return slots;
-})();
+registerLocale('pt-BR', ptBR);
 
-export default function DateTimePicker({ label, value, onChange, required, min }) {
-  const date = value ? value.slice(0, 10) : '';
-  const time = value ? value.slice(11, 16) : '';
+function toDate(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  return isNaN(d) ? null : d;
+}
 
-  function handleDate(e) {
-    const newDate = e.target.value;
-    onChange(`${newDate}T${time || '08:00'}`);
-  }
+function toISO(date) {
+  if (!date) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
-  function handleTime(e) {
-    if (!date) return; // exige que a data seja escolhida primeiro
-    onChange(`${date}T${e.target.value}`);
-  }
-
+export default function DateTimePicker({ label, value, onChange, required, minDate }) {
   return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
+    <div className="form-group dtp-wrap" style={{ marginBottom: 0 }}>
       <label className="form-label">{label}</label>
-      <div style={{ display: 'flex', gap: 8 }}>
-        {/* Calendário */}
-        <input
-          className="form-input"
-          type="date"
-          value={date}
-          min={min ? min.slice(0, 10) : undefined}
-          onChange={handleDate}
-          required={required}
-          style={{ flex: 1 }}
-        />
-        {/* Horário */}
-        <select
-          className="form-input"
-          value={time}
-          onChange={handleTime}
-          disabled={!date}
-          required={required}
-          style={{ width: 110, flexShrink: 0 }}
-        >
-          <option value="">Hora</option>
-          {HORARIOS.map(t => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
-      </div>
+      <DatePicker
+        selected={toDate(value)}
+        onChange={date => onChange(toISO(date))}
+        locale="pt-BR"
+        showTimeSelect
+        timeIntervals={30}
+        timeCaption="Hora"
+        dateFormat="dd/MM/yyyy 'às' HH:mm"
+        timeFormat="HH:mm"
+        minDate={toDate(minDate)}
+        placeholderText="Selecione a data e hora"
+        className="form-input"
+        wrapperClassName="dtp-wrapper"
+        required={required}
+        autoComplete="off"
+        showPopperArrow={false}
+      />
     </div>
   );
 }
