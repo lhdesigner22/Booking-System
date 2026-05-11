@@ -13,9 +13,12 @@ function toDate(value) {
 function toISO(date, showTime) {
   if (!date) return '';
   const pad = n => String(n).padStart(2, '0');
-  const ymd = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-  if (!showTime) return ymd;
-  return `${ymd}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  // Modo só-data: usa data LOCAL (sem fuso) — usado apenas em filtros de busca
+  if (!showTime) {
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
+  // Modo data+hora: envia em UTC com offset para o servidor interpretar corretamente
+  return date.toISOString();
 }
 
 // showTime={true}  → data + hora (padrão, usado em reservas)
