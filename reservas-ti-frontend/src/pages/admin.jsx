@@ -10,6 +10,8 @@ import DateTimePicker from '../components/DateTimePicker.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
 const STATUS_LABEL = { pendente: 'Pendente', aprovada: 'Aprovada', cancelada: 'Cancelada', recusada: 'Recusada' };
+const CATEGORIAS   = ['Notebook', 'Monitor', 'Teclado', 'Mouse', 'Headset', 'Webcam', 'Cabo', 'Adaptador', 'Outro'];
+const EMPTY_EQ     = { nome: '', descricao: '', categoria: '', numero_serie: '', quantidade_total: 1, disponivel: true };
 const ABAS = [
   ['reservas',     'Reservas'],
   ['equipamentos', 'Equipamentos'],
@@ -68,7 +70,7 @@ export default function Admin() {
 
   // Modais equipamento
   const [showModalEq,  setShowModalEq]  = useState(false);
-  const [novoEq,       setNovoEq]       = useState({ nome: '', descricao: '' });
+  const [novoEq,       setNovoEq]       = useState(EMPTY_EQ);
   const [editEq,       setEditEq]       = useState(null);
 
   // Modais usuário
@@ -118,10 +120,12 @@ export default function Admin() {
 
   async function criarEquipamento(e) {
     e.preventDefault();
+    if (!novoEq.nome.trim()) return toast({ message: 'Nome é obrigatório', type: 'error' });
+    if ((novoEq.quantidade_total ?? 1) < 1) return toast({ message: 'Quantidade deve ser ao menos 1', type: 'error' });
     setSubmitting(true);
     try {
       await api.post('/equipamentos', novoEq);
-      setNovoEq({ nome: '', descricao: '' });
+      setNovoEq(EMPTY_EQ);
       setShowModalEq(false);
       carregarDados();
       toast({ message: 'Equipamento cadastrado com sucesso!' });
@@ -132,9 +136,18 @@ export default function Admin() {
 
   async function salvarEdicaoEq(e) {
     e.preventDefault();
+    if (!editEq.nome.trim()) return toast({ message: 'Nome é obrigatório', type: 'error' });
+    if ((editEq.quantidade_total ?? 1) < 1) return toast({ message: 'Quantidade deve ser ao menos 1', type: 'error' });
     setSubmitting(true);
     try {
-      await api.put(`/equipamentos/${editEq.id}`, { nome: editEq.nome, descricao: editEq.descricao });
+      await api.put(`/equipamentos/${editEq.id}`, {
+        nome:             editEq.nome,
+        descricao:        editEq.descricao,
+        categoria:        editEq.categoria,
+        numero_serie:     editEq.numero_serie,
+        quantidade_total: editEq.quantidade_total,
+        disponivel:       editEq.disponivel,
+      });
       setEditEq(null);
       carregarDados();
       toast({ message: 'Equipamento atualizado!' });
@@ -391,22 +404,39 @@ export default function Admin() {
                         <div className="empty-state"><p>Nenhum equipamento cadastrado</p></div>
                       ) : (
                         <table>
-                          <thead><tr><th>#</th><th>Nome</th><th>Descrição</th><th>Status</th><th>Ações</th></tr></thead>
+                          <thead><tr><th>#</th><th>Nome</th><th>Categoria</th><th>Qtd</th><th>Status</th><th>Ações</th></tr></thead>
                           <tbody>
                             <AnimatePresence mode="popLayout">
                               {equipamentos.map((eq, i) => (
                                 <motion.tr key={eq.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                                   exit={{ opacity: 0, x: 20 }} transition={{ delay: i * 0.04 }}>
                                   <td style={{ color: 'var(--text-muted)', fontSize: 12, fontFamily: 'monospace' }}>#{eq.id}</td>
-                                  <td style={{ fontWeight: 500 }}>{eq.nome}</td>
-                                  <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{eq.descricao || '—'}</td>
+                                  <td>
+                                    <div style={{ fontWeight: 500 }}>{eq.nome}</div>
+                                    {eq.numero_serie && (
+                                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'monospace' }}>{eq.numero_serie}</div>
+                                    )}
+                                    {eq.descricao && (
+                                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{eq.descricao}</div>
+                                    )}
+                                  </td>
+                                  <td>
+                                    {eq.categoria
+                                      ? <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 10px', borderRadius: 99, fontSize: 12, fontWeight: 600, color: '#818CF8', background: 'rgba(129,140,248,0.1)', border: '1px solid rgba(129,140,248,0.25)' }}>{eq.categoria}</span>
+                                      : <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
+                                    }
+                                  </td>
+                                  <td style={{ textAlign: 'center', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                    {eq.quantidade_disponivel ?? eq.quantidade_total}
+                                    <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>/{eq.quantidade_total}</span>
+                                  </td>
                                   <td><span className={`badge badge-${eq.disponivel ? 'disponivel' : 'indisponivel'}`}>
                                     {eq.disponivel ? '● Disponível' : '● Indisponível'}
                                   </span></td>
                                   <td>
                                     <div className="actions">
                                       <motion.button className="btn btn-ghost btn-sm" whileTap={{ scale: 0.95 }}
-                                        onClick={() => setEditEq({ ...eq })}>Editar</motion.button>
+                                        onClick={() => setEditEq({ ...eq, numero_serie: eq.numero_serie || '', categoria: eq.categoria || '', descricao: eq.descricao || '' })}>Editar</motion.button>
                                       <motion.button className="btn btn-ghost btn-sm" whileTap={{ scale: 0.95 }}
                                         onClick={() => toggleDisponivel(eq)}>{eq.disponivel ? 'Desativar' : 'Ativar'}</motion.button>
                                       <motion.button className="btn btn-danger btn-sm" whileTap={{ scale: 0.95 }}
@@ -573,7 +603,7 @@ export default function Admin() {
       </div>
 
       {/* ── Modal novo equipamento ── */}
-      <Modal open={showModalEq} onClose={() => setShowModalEq(false)} title="Novo equipamento" subtitle="Preencha os dados do equipamento">
+      <Modal open={showModalEq} onClose={() => { setShowModalEq(false); setNovoEq(EMPTY_EQ); }} title="Novo equipamento" subtitle="Preencha os dados do equipamento">
         <form onSubmit={criarEquipamento}>
           <div className="form-group">
             <label className="form-label">Nome *</label>
@@ -581,21 +611,48 @@ export default function Admin() {
               value={novoEq.nome} onChange={e => setNovoEq({ ...novoEq, nome: e.target.value })} required />
           </div>
           <div className="form-group">
+            <label className="form-label">Categoria</label>
+            <select className="form-input" value={novoEq.categoria}
+              onChange={e => setNovoEq({ ...novoEq, categoria: e.target.value })}>
+              <option value="">Sem categoria</option>
+              {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Número de Série / Patrimônio</label>
+            <input className="form-input" type="text" placeholder="Ex: SN-20240001"
+              value={novoEq.numero_serie} onChange={e => setNovoEq({ ...novoEq, numero_serie: e.target.value })} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Quantidade Total</label>
+            <input className="form-input" type="number" min={1}
+              value={novoEq.quantidade_total}
+              onChange={e => setNovoEq({ ...novoEq, quantidade_total: parseInt(e.target.value) || 1 })} />
+          </div>
+          <div className="form-group">
             <label className="form-label">Descrição</label>
             <input className="form-input" type="text" placeholder="Ex: i7, 16GB RAM, SSD 512GB"
               value={novoEq.descricao} onChange={e => setNovoEq({ ...novoEq, descricao: e.target.value })} />
           </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, color: 'var(--text-secondary)' }}>
+              <input type="checkbox" checked={novoEq.disponivel}
+                onChange={e => setNovoEq({ ...novoEq, disponivel: e.target.checked })}
+                style={{ width: 16, height: 16, accentColor: 'var(--brand-green)', cursor: 'pointer' }} />
+              Equipamento habilitado para reservas
+            </label>
+          </div>
           <div className="modal-footer">
-            <motion.button type="button" className="btn btn-ghost" whileTap={{ scale: 0.97 }} onClick={() => setShowModalEq(false)}>Cancelar</motion.button>
+            <motion.button type="button" className="btn btn-ghost" whileTap={{ scale: 0.97 }} onClick={() => { setShowModalEq(false); setNovoEq(EMPTY_EQ); }}>Cancelar</motion.button>
             <motion.button type="submit" className="btn btn-primary" disabled={submitting} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-              {submitting ? 'Salvando...' : 'Cadastrar'}
+              {submitting ? 'Cadastrando...' : 'Cadastrar'}
             </motion.button>
           </div>
         </form>
       </Modal>
 
       {/* ── Modal editar equipamento ── */}
-      <Modal open={!!editEq} onClose={() => setEditEq(null)} title="Editar equipamento" subtitle="Altere o nome e a descrição">
+      <Modal open={!!editEq} onClose={() => setEditEq(null)} title="Editar equipamento" subtitle="Altere os dados do equipamento">
         {editEq && (
           <form onSubmit={salvarEdicaoEq}>
             <div className="form-group">
@@ -604,14 +661,51 @@ export default function Admin() {
                 onChange={e => setEditEq({ ...editEq, nome: e.target.value })} required />
             </div>
             <div className="form-group">
+              <label className="form-label">Categoria</label>
+              <select className="form-input" value={editEq.categoria || ''}
+                onChange={e => setEditEq({ ...editEq, categoria: e.target.value })}>
+                <option value="">Sem categoria</option>
+                {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Número de Série / Patrimônio</label>
+              <input className="form-input" type="text" placeholder="Ex: SN-20240001"
+                value={editEq.numero_serie || ''}
+                onChange={e => setEditEq({ ...editEq, numero_serie: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Quantidade Total</label>
+              <input className="form-input" type="number" min={1}
+                value={editEq.quantidade_total}
+                onChange={e => setEditEq({ ...editEq, quantidade_total: parseInt(e.target.value) || 1 })} />
+              {(() => {
+                const emUso = (editEq.quantidade_total ?? 0) - (editEq.quantidade_disponivel ?? editEq.quantidade_total ?? 0);
+                return emUso > 0 ? (
+                  <p style={{ margin: '6px 0 0', fontSize: 12, color: '#FCD34D' }}>
+                    ⚠️ {emUso} unidade(s) em uso — não é possível reduzir abaixo disso.
+                  </p>
+                ) : null;
+              })()}
+            </div>
+            <div className="form-group">
               <label className="form-label">Descrição</label>
-              <input className="form-input" type="text" value={editEq.descricao || ''}
+              <input className="form-input" type="text" placeholder="Ex: i7, 16GB RAM, SSD 512GB"
+                value={editEq.descricao || ''}
                 onChange={e => setEditEq({ ...editEq, descricao: e.target.value })} />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, color: 'var(--text-secondary)' }}>
+                <input type="checkbox" checked={editEq.disponivel}
+                  onChange={e => setEditEq({ ...editEq, disponivel: e.target.checked })}
+                  style={{ width: 16, height: 16, accentColor: 'var(--brand-green)', cursor: 'pointer' }} />
+                Equipamento habilitado para reservas
+              </label>
             </div>
             <div className="modal-footer">
               <motion.button type="button" className="btn btn-ghost" whileTap={{ scale: 0.97 }} onClick={() => setEditEq(null)}>Cancelar</motion.button>
               <motion.button type="submit" className="btn btn-primary" disabled={submitting} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-                {submitting ? 'Salvando...' : 'Salvar'}
+                {submitting ? 'Salvando...' : 'Salvar alterações'}
               </motion.button>
             </div>
           </form>
