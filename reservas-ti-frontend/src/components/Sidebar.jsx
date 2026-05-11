@@ -32,6 +32,12 @@ const IconReturn = () => (
     <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
   </svg>
 );
+const IconSuporte = () => (
+  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <line x1="9" y1="10" x2="9" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/><line x1="15" y1="10" x2="15" y2="10"/>
+  </svg>
+);
 // ── NOVO ──────────────────────────────────────────────────────────────────────
 const IconEstoque = () => (
   <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -110,9 +116,10 @@ export default function Sidebar() {
     { to: '/equipamentos', label: 'Equipamentos',    icon: <IconMonitor /> },
     { to: '/reservas',     label: 'Minhas Reservas', icon: <IconCalendar /> },
     { to: '/perfil',       label: 'Meu Perfil',      icon: <IconUser /> },
+    { to: '/suporte',      label: 'Suporte',         icon: <IconSuporte /> },
     ...(user?.admin ? [
       { to: '/devolucoes', label: 'Devoluções',   icon: <IconReturn />,  badge: 'ADMIN' },
-      { to: '/estoque',    label: 'Estoque',       icon: <IconEstoque />, badge: 'ADMIN' }, // ← NOVO
+      { to: '/estoque',    label: 'Estoque',       icon: <IconEstoque />, badge: 'ADMIN' },
       { to: '/admin',      label: 'Painel Admin',  icon: <IconShield />,  badge: 'ADMIN' },
     ] : []),
   ];
