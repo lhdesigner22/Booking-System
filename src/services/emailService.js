@@ -1,18 +1,4 @@
-import nodemailer from 'nodemailer';
 import { pool } from '../config/database.js';
-
-// ── Transporter ───────────────────────────────────────────────────────────────
-function criarTransporter() {
-  return nodemailer.createTransport({
-    host:   process.env.EMAIL_HOST   || 'smtp.gmail.com',
-    port:   parseInt(process.env.EMAIL_PORT || '587', 10),
-    secure: process.env.EMAIL_SECURE === 'true',   // false = STARTTLS (porta 587)
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-}
 
 // ── Busca e-mails de todos os admins ──────────────────────────────────────────
 async function emailsDosAdmins() {
@@ -108,9 +94,8 @@ function templateNovaReserva({ reserva, equipamento, usuario }) {
 
 // ── Função principal exportada ────────────────────────────────────────────────
 export async function notificarAdminsNovaReserva({ reserva, equipamento, usuario }) {
-  // Se não há configuração de e-mail, não faz nada (não quebra o sistema)
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log('[Email] EMAIL_USER/EMAIL_PASS não configurados — notificação ignorada.');
+  if (!process.env.RESEND_API_KEY) {
+    console.log('[Email] RESEND_API_KEY não configurada — notificação ignorada.');
     return;
   }
 
@@ -121,15 +106,28 @@ export async function notificarAdminsNovaReserva({ reserva, equipamento, usuario
       return;
     }
 
-    const transporter = criarTransporter();
     const html = templateNovaReserva({ reserva, equipamento, usuario });
 
-    await transporter.sendMail({
-      from:    `"Booking System" <${process.env.EMAIL_USER}>`,
-      to:      admins.join(', '),
-      subject: `📋 Nova reserva: ${equipamento} — ${usuario.nome}`,
-      html,
+    const from = process.env.EMAIL_FROM || 'Booking System <onboarding@resend.dev>';
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: admins,
+        subject: `📋 Nova reserva: ${equipamento} — ${usuario.nome}`,
+        html,
+      }),
     });
+
+    if (!response.ok) {
+      const erro = await response.text();
+      throw new Error(`Resend API ${response.status}: ${erro}`);
+    }
 
     console.log(`[Email] Notificação enviada para: ${admins.join(', ')}`);
   } catch (err) {
