@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import authRoutes from './routes/auth.js';
 import usuariosRoutes from './routes/usuarios.js';
 import equipamentosRoutes from './routes/equipamentos.js';
 import reservasRoutes from './routes/reservas.js';
@@ -45,6 +46,7 @@ app.use('/api/usuarios/login',    authRateLimiter);
 app.use('/api/usuarios/register', authRateLimiter);
 
 // ── Rotas ─────────────────────────────────────────────────────────────────
+app.use('/api/auth',         authRoutes);
 app.use('/api/usuarios',     usuariosRoutes);
 app.use('/api/equipamentos', equipamentosRoutes);
 app.use('/api/reservas',     reservasRoutes);
