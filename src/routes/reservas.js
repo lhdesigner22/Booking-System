@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../config/database.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { notificarAdminsNovaReserva } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -75,7 +76,21 @@ router.post('/', authMiddleware, async (req, res) => {
     );
 
     await client.query('COMMIT');
-    res.status(201).json(result.rows[0]);
+
+    const novaReserva = result.rows[0];
+    res.status(201).json(novaReserva);
+
+    // Notifica admins por e-mail (fire-and-forget — não bloqueia a resposta)
+    const usuarioInfo = await pool.query(
+      'SELECT nome, email, setor FROM usuarios WHERE id = $1',
+      [req.userId]
+    );
+    notificarAdminsNovaReserva({
+      reserva:     novaReserva,
+      equipamento: equip.rows[0].nome,
+      usuario:     usuarioInfo.rows[0] ?? { nome: '—', email: '—', setor: null },
+    });
+
   } catch (err) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
