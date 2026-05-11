@@ -584,7 +584,98 @@ select.form-input option { background: var(--input-bg); color: var(--text-primar
   .login-left { display: none; }
   .login-right { flex: 1; min-width: unset; width: 100%; }
 }
+
+/* ── Botão hambúrguer (só aparece no mobile) ── */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 14px; left: 14px;
+  z-index: 200;
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-md);
+  transition: background 0.15s;
+}
+.mobile-menu-btn:hover { background: var(--surface-2); }
+
+/* Botão fechar dentro da sidebar no mobile */
+.sidebar-close-btn {
+  display: none;
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  align-items: center; justify-content: center;
+  cursor: pointer;
+  color: rgba(255,255,255,0.6);
+  transition: background 0.15s;
+}
+.sidebar-close-btn:hover { background: rgba(255,255,255,0.13); }
+
+/* Overlay escuro ao abrir sidebar no mobile */
+.sidebar-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 15;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .main-content { margin-left: 0; }
+  /* Hambúrguer visível */
+  .mobile-menu-btn { display: flex; }
+  .sidebar-close-btn { display: flex; }
+
+  /* Sidebar oculta por padrão, desliza ao abrir */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 20;
+  }
+  .sidebar.mobile-open { transform: translateX(0); }
+
+  /* Conteúdo principal ocupa tela toda */
+  .main-content {
+    margin-left: 0;
+    padding: 72px 16px 24px;
+    max-width: 100vw;
+  }
+
+  /* Cabeçalho da página */
+  .page-header { margin-bottom: 16px; }
+  .page-header h2 { font-size: 18px; }
+
+  /* Grid de equipamentos: 1 coluna */
+  .eq-grid { grid-template-columns: 1fr; }
+
+  /* Stats: 2 colunas */
+  .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-value { font-size: 22px; }
+
+  /* Tabelas: scroll horizontal */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 560px; }
+  th, td { padding: 10px 12px; font-size: 13px; }
+
+  /* Modal: largura total */
+  .modal { max-width: calc(100vw - 32px); padding: 20px; margin: 16px; }
+
+  /* Filtros: scroll horizontal sem quebra de linha */
+  .filter-row { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .filter-btn { white-space: nowrap; flex-shrink: 0; }
+
+  /* Botões de ação */
+  .actions { flex-wrap: wrap; }
+  .btn { font-size: 13px; }
+  .btn-sm { font-size: 12px; padding: 5px 8px; }
+
+  /* Card padrão */
+  .card { padding: 16px; }
 }

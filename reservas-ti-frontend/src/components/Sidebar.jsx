@@ -40,6 +40,16 @@ const IconEstoque = () => (
   </svg>
 );
 // ─────────────────────────────────────────────────────────────────────────────
+const IconMenu = () => (
+  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+);
+const IconX = () => (
+  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+);
 const IconLogout = () => (
   <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
     <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
@@ -66,6 +76,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
 
@@ -90,6 +101,11 @@ export default function Sidebar() {
     window.location.replace('/login');
   }
 
+  function navClick(to) {
+    navigate(to);
+    setMobileOpen(false);
+  }
+
   const links = [
     { to: '/equipamentos', label: 'Equipamentos',    icon: <IconMonitor /> },
     { to: '/reservas',     label: 'Minhas Reservas', icon: <IconCalendar /> },
@@ -104,7 +120,29 @@ export default function Sidebar() {
   const inicial = user?.nome?.[0]?.toUpperCase() || '?';
 
   return (
-    <aside className="sidebar">
+    <>
+    {/* Botão hambúrguer — só aparece no mobile */}
+    <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)} aria-label="Abrir menu">
+      <IconMenu />
+    </button>
+
+    {/* Overlay escuro ao abrir no mobile */}
+    <AnimatePresence>
+      {mobileOpen && (
+        <motion.div
+          className="sidebar-overlay"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+    </AnimatePresence>
+
+    <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
+      {/* Botão fechar dentro da sidebar no mobile */}
+      <button className="sidebar-close-btn" onClick={() => setMobileOpen(false)} aria-label="Fechar menu">
+        <IconX />
+      </button>
       {/* Logo */}
       <motion.div
         className="sidebar-logo"
@@ -134,7 +172,7 @@ export default function Sidebar() {
               whileHover={{ x: 3, transition: { duration: 0.15 } }}
               whileTap={{ scale: 0.97 }}
               className={`nav-link ${active ? 'active' : ''}`}
-              onClick={() => navigate(l.to)}
+              onClick={() => navClick(l.to)}
             >
               {l.icon}
               <span style={{ flex: 1 }}>{l.label}</span>
@@ -222,5 +260,6 @@ export default function Sidebar() {
         </motion.button>
       </div>
     </aside>
+    </>
   );
 }
