@@ -19,6 +19,9 @@ router.post('/', authMiddleware, async (req, res) => {
   if (quantidade > 10)
     return res.status(400).json({ error: 'Quantidade máxima por reserva é 10 unidades do mesmo item' });
 
+  if (new Date(data_inicio) < new Date())
+    return res.status(400).json({ error: 'Não é possível criar reservas com data retroativa' });
+
   if (new Date(data_inicio) >= new Date(data_fim))
     return res.status(400).json({ error: 'data_inicio deve ser anterior à data_fim' });
 

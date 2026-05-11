@@ -307,6 +307,7 @@ export default function Reservas() {
                       label="Data de início"
                       value={form.data_inicio}
                       onChange={v => setForm({ ...form, data_inicio: v })}
+                      minDate={new Date().toISOString()}
                       required
                     />
                     <DateTimePicker
