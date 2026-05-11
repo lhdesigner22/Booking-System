@@ -24,6 +24,12 @@ function toISO(date, showTime) {
 // showTime={true}  → data + hora (padrão, usado em reservas)
 // showTime={false} → só data (usado em filtros)
 export default function DateTimePicker({ label, value, onChange, required, minDate, showTime = true }) {
+  // filterTime é reavaliado cada vez que o picker abre — sempre usa new Date() fresco
+  // Adiciona 1 min de margem para não bloquear horários escolhidos "agora"
+  const filterTime = showTime && minDate
+    ? (time) => new Date(time).getTime() >= Date.now() - 60 * 1000
+    : undefined;
+
   return (
     <div className="form-group dtp-wrap" style={{ marginBottom: 0 }}>
       {label && <label className="form-label">{label}</label>}
@@ -37,6 +43,7 @@ export default function DateTimePicker({ label, value, onChange, required, minDa
         dateFormat={showTime ? "dd/MM/yyyy 'às' HH:mm" : "dd/MM/yyyy"}
         timeFormat="HH:mm"
         minDate={toDate(minDate)}
+        filterTime={filterTime}
         placeholderText={showTime ? 'Selecione a data e hora' : 'Selecione a data'}
         className="form-input"
         wrapperClassName="dtp-wrapper"
