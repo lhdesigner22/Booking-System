@@ -10,32 +10,37 @@ function toDate(value) {
   return isNaN(d) ? null : d;
 }
 
-function toISO(date) {
+function toISO(date, showTime) {
   if (!date) return '';
   const pad = n => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  const ymd = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  if (!showTime) return ymd;
+  return `${ymd}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export default function DateTimePicker({ label, value, onChange, required, minDate }) {
+// showTime={true}  → data + hora (padrão, usado em reservas)
+// showTime={false} → só data (usado em filtros)
+export default function DateTimePicker({ label, value, onChange, required, minDate, showTime = true }) {
   return (
     <div className="form-group dtp-wrap" style={{ marginBottom: 0 }}>
-      <label className="form-label">{label}</label>
+      {label && <label className="form-label">{label}</label>}
       <DatePicker
         selected={toDate(value)}
-        onChange={date => onChange(toISO(date))}
+        onChange={date => onChange(toISO(date, showTime))}
         locale="pt-BR"
-        showTimeSelect
+        showTimeSelect={showTime}
         timeIntervals={30}
         timeCaption="Hora"
-        dateFormat="dd/MM/yyyy 'às' HH:mm"
+        dateFormat={showTime ? "dd/MM/yyyy 'às' HH:mm" : "dd/MM/yyyy"}
         timeFormat="HH:mm"
         minDate={toDate(minDate)}
-        placeholderText="Selecione a data e hora"
+        placeholderText={showTime ? 'Selecione a data e hora' : 'Selecione a data'}
         className="form-input"
         wrapperClassName="dtp-wrapper"
         required={required}
         autoComplete="off"
         showPopperArrow={false}
+        isClearable={!required}
       />
     </div>
   );

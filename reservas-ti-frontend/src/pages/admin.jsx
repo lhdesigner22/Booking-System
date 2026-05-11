@@ -6,6 +6,7 @@ import PageTransition from '../components/PageTransition.jsx';
 import Modal from '../components/Modal.jsx';
 import SkeletonTable from '../components/SkeletonTable.jsx';
 import ChatReserva from '../components/ChatReserva.jsx';
+import DateTimePicker from '../components/DateTimePicker.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
 const STATUS_LABEL = { pendente: 'Pendente', aprovada: 'Aprovada', cancelada: 'Cancelada', recusada: 'Recusada' };
@@ -297,9 +298,12 @@ export default function Admin() {
                           onChange={e => setBuscaEquip(e.target.value)} style={{ marginBottom: 0 }} />
                       </div>
                       <div>
-                        <label className="form-label" style={{ fontSize: 11, marginBottom: 4 }}>Data (início)</label>
-                        <input className="form-input" type="date" value={buscaData}
-                          onChange={e => setBuscaData(e.target.value)} style={{ marginBottom: 0 }} />
+                        <DateTimePicker
+                          label="Data (início)"
+                          value={buscaData}
+                          onChange={v => setBuscaData(v)}
+                          showTime={false}
+                        />
                       </div>
                     </div>
                     {(buscaUsuario || buscaEquip || buscaData) && (
