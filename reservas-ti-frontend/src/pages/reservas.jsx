@@ -28,11 +28,12 @@ const STAT_META = [
 ];
 
 export default function Reservas() {
-  const [reservas, setReservas]     = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [form, setForm]             = useState({ equipamento_id: '', data_inicio: '', data_fim: '', quantidade: 1 });
-  const [equipNome, setEquipNome]   = useState('');
-  const [filtro, setFiltro]         = useState('todas');
+  const [reservas, setReservas]         = useState([]);
+  const [equipamentos, setEquipamentos] = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [form, setForm]                 = useState({ equipamento_id: '', data_inicio: '', data_fim: '', quantidade: 1, local_uso: '' });
+  const [equipNome, setEquipNome]       = useState('');
+  const [filtro, setFiltro]             = useState('todas');
   const [busca, setBusca]           = useState('');
   const [showForm, setShowForm]     = useState(false);
   const [showCal, setShowCal]       = useState(false);
@@ -43,6 +44,7 @@ export default function Reservas() {
   const toast    = useToast();
 
   useEffect(() => {
+    api.get('/equipamentos').then(r => setEquipamentos(r.data)).catch(() => {});
     if (location.state?.equipamento_id) {
       setForm(f => ({ ...f, equipamento_id: location.state.equipamento_id }));
       setEquipNome(location.state.nome || '');
@@ -81,7 +83,7 @@ export default function Reservas() {
     try {
       await api.post('/reservas', form);
       toast({ message: 'Reserva criada! Aguardando aprovação.' });
-      setForm({ equipamento_id: '', data_inicio: '', data_fim: '', quantidade: 1 });
+      setForm({ equipamento_id: '', data_inicio: '', data_fim: '', quantidade: 1, local_uso: '' });
       setEquipNome(''); setShowForm(false); setShowCal(false);
       carregarReservas();
     } catch (err) {
@@ -269,13 +271,37 @@ export default function Reservas() {
                 </AnimatePresence>
 
                 <form onSubmit={handleSubmit}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 90px auto', gap: 12, alignItems: 'end' }}>
+                  {/* Linha 1: Equipamento + Local de uso */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label">ID do Equipamento</label>
-                      <input className="form-input" type="number" placeholder="Ex: 1"
+                      <label className="form-label">Equipamento</label>
+                      <select className="form-input" required
                         value={form.equipamento_id}
-                        onChange={e => setForm({ ...form, equipamento_id: e.target.value })} required />
+                        onChange={e => {
+                          const id = e.target.value;
+                          const eq = equipamentos.find(eq => String(eq.id) === id);
+                          setForm({ ...form, equipamento_id: id });
+                          setEquipNome(eq?.nome || '');
+                        }}
+                      >
+                        <option value="">Selecione um equipamento...</option>
+                        {equipamentos.map(eq => (
+                          <option key={eq.id} value={eq.id} disabled={eq.quantidade_disponivel === 0}>
+                            {eq.nome}{eq.categoria ? ` — ${eq.categoria}` : ''}{eq.quantidade_disponivel === 0 ? ' (indisponível)' : ` (${eq.quantidade_disponivel} disponível)`}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">Local de uso</label>
+                      <input className="form-input" type="text" placeholder="Ex: Sala 3, Auditório, Lab..."
+                        value={form.local_uso}
+                        onChange={e => setForm({ ...form, local_uso: e.target.value })} />
+                    </div>
+                  </div>
+
+                  {/* Linha 2: Datas + Quantidade + Botão */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 90px auto', gap: 12, alignItems: 'end' }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label className="form-label">Data de início</label>
                       <input className="form-input" type="datetime-local"
@@ -476,6 +502,7 @@ export default function Reservas() {
                 {[
                   ['Equipamento', detalhe.equipamento_nome],
                   ['Quantidade', detalhe.quantidade ?? 1],
+                  ['Local de uso', detalhe.local_uso || '—'],
                   ['Início', new Date(detalhe.data_inicio).toLocaleString('pt-BR')],
                   ['Fim',    new Date(detalhe.data_fim).toLocaleString('pt-BR')],
                   ['ID da reserva', `#${detalhe.id}`],

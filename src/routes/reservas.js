@@ -6,7 +6,7 @@ const router = express.Router();
 
 // POST /api/reservas — criar reserva
 router.post('/', authMiddleware, async (req, res) => {
-  const { data_inicio, data_fim } = req.body;
+  const { data_inicio, data_fim, local_uso } = req.body;
   const equipamento_id = parseInt(req.body.equipamento_id, 10);
   const quantidade = parseInt(req.body.quantidade, 10) || 1;
 
@@ -65,10 +65,10 @@ router.post('/', authMiddleware, async (req, res) => {
 
     // Cria a reserva
     const result = await client.query(
-      `INSERT INTO reservas (usuario_id, equipamento_id, data_inicio, data_fim, quantidade, status)
-       VALUES ($1, $2, $3, $4, $5, 'pendente')
+      `INSERT INTO reservas (usuario_id, equipamento_id, data_inicio, data_fim, quantidade, local_uso, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pendente')
        RETURNING *`,
-      [req.userId, equipamento_id, data_inicio, data_fim, quantidade]
+      [req.userId, equipamento_id, data_inicio, data_fim, quantidade, local_uso || null]
     );
 
     await client.query('COMMIT');
