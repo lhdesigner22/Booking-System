@@ -13,6 +13,8 @@ export default function ChatReserva({ reservaId }) {
   const [texto, setTexto]         = useState('');
   const [loading, setLoading]     = useState(true);
   const [sending, setSending]     = useState(false);
+  const [erroEnvio, setErroEnvio] = useState('');
+  const [erroCarga, setErroCarga] = useState('');
   const bottomRef                 = useRef(null);
   const inputRef                  = useRef(null);
 
@@ -31,8 +33,12 @@ export default function ChatReserva({ reservaId }) {
     try {
       const res = await api.get(`/reservas/${reservaId}/comentarios`);
       setMensagens(res.data);
-    } catch {
-      // silencioso — não interrompe o usuário
+      setErroCarga('');
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 403) setErroCarga('Sem permissão para acessar este chat.');
+      else if (status === 404) setErroCarga('Reserva não encontrada.');
+      else setErroCarga('Erro ao carregar mensagens. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -42,13 +48,15 @@ export default function ChatReserva({ reservaId }) {
     e.preventDefault();
     if (!texto.trim() || sending) return;
     setSending(true);
+    setErroEnvio('');
     try {
       const res = await api.post(`/reservas/${reservaId}/comentarios`, { mensagem: texto.trim() });
       setMensagens(prev => [...prev, res.data]);
       setTexto('');
       inputRef.current?.focus();
-    } catch {
-      // silencioso
+    } catch (err) {
+      const msg = err.response?.data?.error;
+      setErroEnvio(msg || 'Erro ao enviar mensagem. Tente novamente.');
     } finally {
       setSending(false);
     }
@@ -83,6 +91,28 @@ export default function ChatReserva({ reservaId }) {
         )}
       </div>
 
+      {/* Erro de carga */}
+      <AnimatePresence>
+        {erroCarga && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{
+              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+              borderRadius: 8, padding: '8px 12px', marginBottom: 8,
+              fontSize: 13, color: '#F87171', overflow: 'hidden',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}
+          >
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            {erroCarga}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Lista de mensagens */}
       <div style={{
         flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column',
@@ -92,7 +122,7 @@ export default function ChatReserva({ reservaId }) {
           <div style={{ textAlign: 'center', padding: 20, fontSize: 13, color: 'var(--text-muted)' }}>
             Carregando...
           </div>
-        ) : mensagens.length === 0 ? (
+        ) : erroCarga ? null : mensagens.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -179,6 +209,28 @@ export default function ChatReserva({ reservaId }) {
         )}
         <div ref={bottomRef} />
       </div>
+
+      {/* Erro de envio */}
+      <AnimatePresence>
+        {erroEnvio && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{
+              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+              borderRadius: 8, padding: '7px 12px', marginTop: 8,
+              fontSize: 12, color: '#F87171', overflow: 'hidden',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}
+          >
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            {erroEnvio}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Input */}
       <form

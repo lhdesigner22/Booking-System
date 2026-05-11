@@ -15,7 +15,7 @@ async function checkAcesso(reservaId, userId, isAdmin) {
 router.get('/', authMiddleware, async (req, res) => {
   const reservaId = parseInt(req.params.id, 10);
   try {
-    const acesso = await checkAcesso(reservaId, req.userId, req.admin);
+    const acesso = await checkAcesso(reservaId, req.userId, req.isAdmin);
     if (!acesso) return res.status(403).json({ error: 'Acesso negado' });
 
     const result = await pool.query(
@@ -47,7 +47,7 @@ router.post('/', authMiddleware, async (req, res) => {
     return res.status(400).json({ error: 'Mensagem muito longa (máx. 1000 caracteres)' });
 
   try {
-    const acesso = await checkAcesso(reservaId, req.userId, req.admin);
+    const acesso = await checkAcesso(reservaId, req.userId, req.isAdmin);
     if (!acesso) return res.status(403).json({ error: 'Acesso negado' });
 
     const result = await pool.query(
