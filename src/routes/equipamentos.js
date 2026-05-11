@@ -26,10 +26,10 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT e.*,
-             GREATEST(e.quantidade_total - COALESCE(em_uso.total, 0), 0) AS quantidade_disponivel
+             GREATEST(e.quantidade_total - COALESCE(em_uso.total, 0), 0)::INTEGER AS quantidade_disponivel
       FROM equipamentos e
       LEFT JOIN (
-        SELECT equipamento_id, SUM(quantidade) AS total
+        SELECT equipamento_id, SUM(quantidade)::INTEGER AS total
         FROM reservas
         WHERE status = 'aprovada'
         GROUP BY equipamento_id
@@ -47,11 +47,11 @@ router.get('/estoque', adminMiddleware, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT e.*,
-             COALESCE(em_uso.total, 0)                                        AS quantidade_em_uso,
-             GREATEST(e.quantidade_total - COALESCE(em_uso.total, 0), 0)      AS quantidade_disponivel
+             COALESCE(em_uso.total, 0)::INTEGER                               AS quantidade_em_uso,
+             GREATEST(e.quantidade_total - COALESCE(em_uso.total, 0), 0)::INTEGER AS quantidade_disponivel
       FROM equipamentos e
       LEFT JOIN (
-        SELECT equipamento_id, SUM(quantidade) AS total
+        SELECT equipamento_id, SUM(quantidade)::INTEGER AS total
         FROM reservas
         WHERE status = 'aprovada'
         GROUP BY equipamento_id
@@ -69,10 +69,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT e.*,
-             GREATEST(e.quantidade_total - COALESCE(em_uso.total, 0), 0) AS quantidade_disponivel
+             GREATEST(e.quantidade_total - COALESCE(em_uso.total, 0), 0)::INTEGER AS quantidade_disponivel
       FROM equipamentos e
       LEFT JOIN (
-        SELECT equipamento_id, SUM(quantidade) AS total
+        SELECT equipamento_id, SUM(quantidade)::INTEGER AS total
         FROM reservas
         WHERE status = 'aprovada'
         GROUP BY equipamento_id
