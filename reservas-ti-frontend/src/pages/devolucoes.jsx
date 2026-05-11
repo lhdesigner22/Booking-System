@@ -221,6 +221,7 @@ export default function Devolucoes() {
                     <tr>
                       <th>Equipamento</th>
                       <th>Usuário</th>
+                      <th>Local de uso</th>
                       <th>Início</th>
                       <th>Devolução Prevista</th>
                       <th>Status</th>
@@ -251,6 +252,9 @@ export default function Devolucoes() {
                             <td>
                               <div style={{ fontWeight: 500 }}>{r.usuario_nome}</div>
                               <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{r.usuario_email}</div>
+                            </td>
+                            <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+                              {r.local_uso || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
                             </td>
                             <td style={{ color: 'var(--text-secondary)', fontSize: 13, whiteSpace: 'nowrap' }}>
                               {fmtData(r.data_inicio)}
@@ -326,6 +330,7 @@ export default function Devolucoes() {
               {[
                 ['Equipamento',   confirmando.equipamento_nome],
                 ['Usuário',       confirmando.usuario_nome],
+                ['Local de uso',  confirmando.local_uso || '—'],
                 ['Reservado de',  fmtData(confirmando.data_inicio)],
                 ['Reservado até', fmtData(confirmando.data_fim)],
               ].map(([k, v]) => (

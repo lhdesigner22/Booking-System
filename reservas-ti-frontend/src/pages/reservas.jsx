@@ -409,6 +409,7 @@ export default function Reservas() {
                     <tr>
                       <th>Equipamento</th>
                       <th>Qtd</th>
+                      <th>Local de uso</th>
                       <th>Início</th>
                       <th>Fim</th>
                       <th>Status</th>
@@ -446,6 +447,9 @@ export default function Reservas() {
                             </td>
                             <td style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>
                               {r.quantidade ?? 1}
+                            </td>
+                            <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+                              {r.local_uso || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
                             </td>
                             <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
                               {new Date(r.data_inicio).toLocaleString('pt-BR')}

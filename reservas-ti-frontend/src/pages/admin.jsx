@@ -343,7 +343,7 @@ export default function Admin() {
                         </div>
                       ) : (
                         <table>
-                          <thead><tr><th>#</th><th>Usuário</th><th>Equipamento</th><th>Qtd</th><th>Início</th><th>Fim</th><th>Status</th><th>Chat</th><th>Ações</th></tr></thead>
+                          <thead><tr><th>#</th><th>Usuário</th><th>Equipamento</th><th>Qtd</th><th>Local de uso</th><th>Início</th><th>Fim</th><th>Status</th><th>Chat</th><th>Ações</th></tr></thead>
                           <tbody>
                             <AnimatePresence mode="popLayout">
                               {filtradas.map((r, i) => (
@@ -354,6 +354,9 @@ export default function Admin() {
                                   <td style={{ fontWeight: 500 }}>{r.usuario_nome}</td>
                                   <td>{r.equipamento_nome}</td>
                                   <td style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{r.quantidade ?? 1}</td>
+                                  <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+                                    {r.local_uso || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
+                                  </td>
                                   <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{new Date(r.data_inicio).toLocaleString('pt-BR')}</td>
                                   <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{new Date(r.data_fim).toLocaleString('pt-BR')}</td>
                                   <td><span className={`badge badge-${r.status}`}>{STATUS_LABEL[r.status]}</span></td>
