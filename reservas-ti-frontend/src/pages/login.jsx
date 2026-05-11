@@ -24,11 +24,11 @@ export default function Login() {
   const { login } = useAuth();
 
   const loginGoogle = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
+    onSuccess: async ({ access_token }) => {
       setLoadingGoogle(true);
       setErro('');
       try {
-        const res = await api.post('/auth/google', { credential: tokenResponse.access_token });
+        const res = await api.post('/auth/google', { credential: access_token });
         login(res.data.token);
         navigate('/equipamentos');
       } catch {

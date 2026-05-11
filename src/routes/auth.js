@@ -1,10 +1,8 @@
 import express from 'express';
-import { OAuth2Client } from 'google-auth-library';
 import { pool } from '../config/database.js';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // POST /api/auth/google — autentica via Google
 router.post('/google', async (req, res) => {
@@ -12,12 +10,16 @@ router.post('/google', async (req, res) => {
   if (!credential) return res.status(400).json({ error: 'Credencial não fornecida' });
 
   try {
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
+    // Busca dados do usuário no Google usando o access_token
+    const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${credential}` },
     });
 
-    const { sub: googleId, email, name } = ticket.getPayload();
+    if (!googleRes.ok) {
+      return res.status(401).json({ error: 'Token do Google inválido' });
+    }
+
+    const { sub: googleId, email, name } = await googleRes.json();
 
     // Busca usuário pelo google_id ou email
     let result = await pool.query(
@@ -53,7 +55,7 @@ router.post('/google', async (req, res) => {
     });
   } catch (err) {
     console.error('Google auth error:', err.message);
-    res.status(401).json({ error: 'Token do Google inválido' });
+    res.status(401).json({ error: 'Erro ao autenticar com o Google' });
   }
 });
 
