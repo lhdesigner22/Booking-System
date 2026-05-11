@@ -14,7 +14,7 @@ const itemVariant = {
 };
 
 export default function Register() {
-  const [form, setForm]       = useState({ nome: '', email: '', senha: '' });
+  const [form, setForm]       = useState({ nome: '', email: '', senha: '', setor: '' });
   const [erro, setErro]       = useState('');
   const [sucesso, setSucesso] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -132,7 +132,7 @@ export default function Register() {
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariant} className="form-group" style={{ marginBottom: 24 }}>
+            <motion.div variants={itemVariant} className="form-group">
               <label className="form-label-sm">Senha</label>
               <div className="input-icon-wrap">
                 <svg className="input-icon" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -146,6 +146,24 @@ export default function Register() {
                   onChange={e => setForm({ ...form, senha: e.target.value })}
                   required
                   autoComplete="new-password"
+                />
+              </div>
+            </motion.div>
+
+            <motion.div variants={itemVariant} className="form-group" style={{ marginBottom: 24 }}>
+              <label className="form-label-sm">Setor / Curso</label>
+              <div className="input-icon-wrap">
+                <svg className="input-icon" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                  <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                <input
+                  className="form-input"
+                  type="text"
+                  placeholder="Ex: TI, Administração, Ensino Médio A..."
+                  value={form.setor}
+                  onChange={e => setForm({ ...form, setor: e.target.value })}
+                  autoComplete="organization"
                 />
               </div>
             </motion.div>

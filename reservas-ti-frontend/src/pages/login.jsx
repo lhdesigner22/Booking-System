@@ -20,6 +20,14 @@ export default function Login() {
   const [erro, setErro]         = useState('');
   const [loading, setLoading]   = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+
+  // Modal setor (Google OAuth – primeiro acesso)
+  const [modalSetor, setModalSetor]       = useState(false);
+  const [setor, setSetor]                 = useState('');
+  const [setorErro, setSetorErro]         = useState('');
+  const [setorLoading, setSetorLoading]   = useState(false);
+  const [pendingToken, setPendingToken]   = useState(null);
+
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -29,8 +37,14 @@ export default function Login() {
       setErro('');
       try {
         const res = await api.post('/auth/google', { credential: access_token });
-        login(res.data.token);
-        navigate('/equipamentos');
+        if (res.data.perfil_incompleto) {
+          // Salva token temporariamente e abre modal de setor
+          setPendingToken(res.data.token);
+          setModalSetor(true);
+        } else {
+          login(res.data.token);
+          navigate('/equipamentos');
+        }
       } catch {
         setErro('Erro ao autenticar com o Google. Tente novamente.');
       } finally {
@@ -39,6 +53,26 @@ export default function Login() {
     },
     onError: () => setErro('Login com Google cancelado ou falhou.'),
   });
+
+  async function handleSalvarSetor() {
+    if (!setor.trim()) {
+      setSetorErro('Informe o seu setor ou curso para continuar.');
+      return;
+    }
+    setSetorLoading(true);
+    setSetorErro('');
+    try {
+      // Faz login temporário para usar o token e salvar o setor
+      login(pendingToken);
+      await api.patch('/usuarios/perfil', { setor: setor.trim() }, {
+        headers: { Authorization: `Bearer ${pendingToken}` },
+      });
+      navigate('/equipamentos');
+    } catch {
+      setSetorErro('Erro ao salvar setor. Tente novamente.');
+      setSetorLoading(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -57,6 +91,106 @@ export default function Login() {
 
   return (
     <PageTransition>
+
+      {/* ── Modal: Setor/Curso (primeiro login Google) ── */}
+      <AnimatePresence>
+        {modalSetor && (
+          <motion.div
+            key="setor-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 9999,
+              background: 'rgba(0,0,0,0.55)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 16,
+            }}
+          >
+            <motion.div
+              key="setor-box"
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0, transition: { duration: 0.25, ease: [0.22,1,0.36,1] } }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              style={{
+                background: 'var(--surface)', borderRadius: 16,
+                padding: '32px 28px', width: '100%', maxWidth: 420,
+                boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {/* Ícone */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                <div style={{
+                  width: 52, height: 52, borderRadius: '50%',
+                  background: 'var(--brand-green-dim, rgba(34,197,94,0.12))',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="24" height="24" fill="none" stroke="var(--brand-green)" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
+                </div>
+              </div>
+
+              <h3 style={{ textAlign: 'center', fontSize: 18, fontWeight: 700, marginBottom: 6, color: 'var(--text-primary)' }}>
+                Bem-vindo ao Booking System!
+              </h3>
+              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>
+                Para finalizar o cadastro, informe o seu setor ou curso.
+              </p>
+
+              <div className="form-group" style={{ marginBottom: 8 }}>
+                <label className="form-label-sm">Setor / Curso</label>
+                <div className="input-icon-wrap">
+                  <svg className="input-icon" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder="Ex: TI, Administração, Ensino Médio A..."
+                    value={setor}
+                    onChange={e => { setSetor(e.target.value); setSetorErro(''); }}
+                    autoFocus
+                    onKeyDown={e => e.key === 'Enter' && handleSalvarSetor()}
+                  />
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {setorErro && (
+                  <motion.div
+                    className="alert alert-error"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    style={{ marginBottom: 12, overflow: 'hidden' }}
+                  >
+                    {setorErro}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <motion.button
+                className="btn btn-primary"
+                type="button"
+                onClick={handleSalvarSetor}
+                disabled={setorLoading}
+                whileTap={{ scale: 0.98 }}
+                style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: 15, borderRadius: 10, marginTop: 8 }}
+              >
+                {setorLoading
+                  ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Spinner /> Salvando...</span>
+                  : 'Continuar →'
+                }
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="login-page">
 
         <LoginLeft

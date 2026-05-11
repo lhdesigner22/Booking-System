@@ -7,7 +7,7 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = express.Router();
 
 router.post('/register', async (req, res) => {
-  const { nome, email, senha } = req.body;
+  const { nome, email, senha, setor } = req.body;
   if (!nome || !email || !senha) return res.status(400).json({ error: 'Preencha todos os campos' });
 
   try {
@@ -16,8 +16,8 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(senha, 10);
     const newUser = await pool.query(
-      'INSERT INTO usuarios (nome, email, senha) VALUES ($1, $2, $3) RETURNING id, nome, email',
-      [nome, email, hashedPassword]
+      'INSERT INTO usuarios (nome, email, senha, setor) VALUES ($1, $2, $3, $4) RETURNING id, nome, email, setor',
+      [nome, email, hashedPassword, setor || null]
     );
     res.status(201).json(newUser.rows[0]);
   } catch (err) {
@@ -64,9 +64,9 @@ router.get('/perfil', authMiddleware, async (req, res) => {
   }
 });
 
-// PATCH /api/usuarios/perfil — colaborador edita próprio perfil (nome, email, senha)
+// PATCH /api/usuarios/perfil — colaborador edita próprio perfil (nome, email, senha, setor)
 router.patch('/perfil', authMiddleware, async (req, res) => {
-  const { nome, email, senha } = req.body;
+  const { nome, email, senha, setor } = req.body;
   try {
     let senhaHash = null;
     if (senha && senha.trim() !== '') {
@@ -87,10 +87,11 @@ router.patch('/perfil', authMiddleware, async (req, res) => {
       `UPDATE usuarios
        SET nome  = COALESCE($1, nome),
            email = COALESCE($2, email),
-           senha = COALESCE($3, senha)
-       WHERE id = $4
-       RETURNING id, nome, email, admin`,
-      [nome || null, email || null, senhaHash, req.userId]
+           senha = COALESCE($3, senha),
+           setor = COALESCE($4, setor)
+       WHERE id = $5
+       RETURNING id, nome, email, admin, setor`,
+      [nome || null, email || null, senhaHash, setor || null, req.userId]
     );
     res.json(result.rows[0]);
   } catch (err) {

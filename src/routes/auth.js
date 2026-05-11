@@ -31,7 +31,7 @@ router.post('/google', async (req, res) => {
     if (result.rows.length === 0) {
       // Cria novo usuário
       const insert = await pool.query(
-        'INSERT INTO usuarios (nome, email, google_id) VALUES ($1, $2, $3) RETURNING id, nome, email, admin',
+        'INSERT INTO usuarios (nome, email, google_id) VALUES ($1, $2, $3) RETURNING id, nome, email, admin, setor',
         [name, email, googleId]
       );
       user = insert.rows[0];
@@ -49,9 +49,13 @@ router.post('/google', async (req, res) => {
       { expiresIn: '1d' }
     );
 
+    // Indica ao frontend que o perfil está incompleto (setor não preenchido)
+    const perfil_incompleto = !user.setor;
+
     res.json({
       token,
-      user: { id: user.id, nome: user.nome, email: user.email, admin: user.admin },
+      user: { id: user.id, nome: user.nome, email: user.email, admin: user.admin, setor: user.setor },
+      perfil_incompleto,
     });
   } catch (err) {
     console.error('Google auth error:', err.message);
