@@ -6,6 +6,7 @@ import Sidebar from '../components/Sidebar';
 import PageTransition from '../components/PageTransition.jsx';
 import SkeletonTable from '../components/SkeletonTable.jsx';
 import CalendarioDisponibilidade from '../components/CalendarioDisponibilidade.jsx';
+import DateTimePicker from '../components/DateTimePicker.jsx';
 import Modal from '../components/Modal.jsx';
 import ChatReserva from '../components/ChatReserva.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -302,18 +303,19 @@ export default function Reservas() {
 
                   {/* Linha 2: Datas + Quantidade + Botão */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 90px auto', gap: 12, alignItems: 'end' }}>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label">Data de início</label>
-                      <input className="form-input" type="datetime-local"
-                        value={form.data_inicio}
-                        onChange={e => setForm({ ...form, data_inicio: e.target.value })} required />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label">Data de fim</label>
-                      <input className="form-input" type="datetime-local"
-                        value={form.data_fim}
-                        onChange={e => setForm({ ...form, data_fim: e.target.value })} required />
-                    </div>
+                    <DateTimePicker
+                      label="Data de início"
+                      value={form.data_inicio}
+                      onChange={v => setForm({ ...form, data_inicio: v })}
+                      required
+                    />
+                    <DateTimePicker
+                      label="Data de fim"
+                      value={form.data_fim}
+                      min={form.data_inicio}
+                      onChange={v => setForm({ ...form, data_fim: v })}
+                      required
+                    />
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label className="form-label">Quantidade</label>
                       <input className="form-input" type="number" min="1" max="10" placeholder="1"
