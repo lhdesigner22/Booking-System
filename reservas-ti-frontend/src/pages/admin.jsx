@@ -72,7 +72,7 @@ export default function Admin() {
 
   // Modais usuário
   const [showModalUser, setShowModalUser] = useState(false);
-  const [novoUser,      setNovoUser]      = useState({ nome: '', email: '', senha: '', admin: false });
+  const [novoUser,      setNovoUser]      = useState({ nome: '', email: '', senha: '', admin: false, setor: '' });
   const [editUser,      setEditUser]      = useState(null);
   const [resetUser,     setResetUser]     = useState(null);
   const [novaSenha,     setNovaSenha]     = useState('');
@@ -157,7 +157,7 @@ export default function Admin() {
     setSubmitting(true);
     try {
       await api.post('/admin/usuarios', novoUser);
-      setNovoUser({ nome: '', email: '', senha: '', admin: false });
+      setNovoUser({ nome: '', email: '', senha: '', admin: false, setor: '' });
       setShowModalUser(false);
       carregarDados();
       toast({ message: 'Usuário criado com sucesso!' });
@@ -170,7 +170,7 @@ export default function Admin() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.patch(`/admin/usuarios/${editUser.id}`, { nome: editUser.nome, email: editUser.email, admin: editUser.admin });
+      await api.patch(`/admin/usuarios/${editUser.id}`, { nome: editUser.nome, email: editUser.email, admin: editUser.admin, setor: editUser.setor });
       setEditUser(null);
       carregarDados();
       toast({ message: 'Usuário atualizado com sucesso!' });
@@ -433,7 +433,7 @@ export default function Admin() {
                         <div className="empty-state"><p>Nenhum usuário cadastrado</p></div>
                       ) : (
                         <table>
-                          <thead><tr><th>#</th><th>Nome</th><th>E-mail</th><th>Papel</th><th>Ações</th></tr></thead>
+                          <thead><tr><th>#</th><th>Nome</th><th>E-mail</th><th>Setor / Curso</th><th>Papel</th><th>Ações</th></tr></thead>
                           <tbody>
                             <AnimatePresence mode="popLayout">
                               {usuarios.map((u, i) => (
@@ -442,13 +442,19 @@ export default function Admin() {
                                   <td style={{ color: 'var(--text-muted)', fontSize: 12, fontFamily: 'monospace' }}>#{u.id}</td>
                                   <td style={{ fontWeight: 500 }}>{u.nome}</td>
                                   <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{u.email}</td>
+                                  <td>
+                                    {u.setor
+                                      ? <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{u.setor}</span>
+                                      : <span style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>Não informado</span>
+                                    }
+                                  </td>
                                   <td><span className={`badge badge-${u.admin ? 'aprovada' : 'pendente'}`}>
                                     {u.admin ? '⚑ Admin' : '● Colaborador'}
                                   </span></td>
                                   <td>
                                     <div className="actions">
                                       <motion.button className="btn btn-ghost btn-sm" whileTap={{ scale: 0.95 }}
-                                        onClick={() => setEditUser({ ...u })}>Editar</motion.button>
+                                        onClick={() => setEditUser({ ...u, setor: u.setor || '' })}>Editar</motion.button>
                                       <motion.button className="btn btn-ghost btn-sm" whileTap={{ scale: 0.95 }}
                                         onClick={() => { setResetUser(u); setNovaSenha(''); }}
                                         title="Redefinir senha">🔑 Senha</motion.button>
@@ -627,6 +633,11 @@ export default function Admin() {
               value={novoUser.senha} onChange={e => setNovoUser({ ...novoUser, senha: e.target.value })} required />
           </div>
           <div className="form-group">
+            <label className="form-label">Setor / Curso</label>
+            <input className="form-input" type="text" placeholder="Ex: TI, Administração, Ensino Médio A..."
+              value={novoUser.setor} onChange={e => setNovoUser({ ...novoUser, setor: e.target.value })} />
+          </div>
+          <div className="form-group">
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, color: 'var(--text-secondary)' }}>
               <input type="checkbox" checked={novoUser.admin}
                 onChange={e => setNovoUser({ ...novoUser, admin: e.target.checked })}
@@ -656,6 +667,11 @@ export default function Admin() {
               <label className="form-label">E-mail *</label>
               <input className="form-input" type="email"
                 value={editUser.email} onChange={e => setEditUser({ ...editUser, email: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Setor / Curso</label>
+              <input className="form-input" type="text" placeholder="Ex: TI, Administração, Ensino Médio A..."
+                value={editUser.setor || ''} onChange={e => setEditUser({ ...editUser, setor: e.target.value })} />
             </div>
             <div className="form-group">
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, color: 'var(--text-secondary)' }}>

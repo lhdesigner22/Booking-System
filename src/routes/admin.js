@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/usuarios', adminMiddleware, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, nome, email, admin FROM usuarios ORDER BY nome'
+      'SELECT id, nome, email, admin, setor FROM usuarios ORDER BY nome'
     );
     res.json(result.rows);
   } catch (err) {
@@ -19,7 +19,7 @@ router.get('/usuarios', adminMiddleware, async (req, res) => {
 
 // POST /api/admin/usuarios — cria usuário (admin pode definir se é admin)
 router.post('/usuarios', adminMiddleware, async (req, res) => {
-  const { nome, email, senha, admin } = req.body;
+  const { nome, email, senha, admin, setor } = req.body;
   if (!nome || !email || !senha) return res.status(400).json({ error: 'Preencha todos os campos' });
 
   try {
@@ -28,8 +28,8 @@ router.post('/usuarios', adminMiddleware, async (req, res) => {
 
     const hash = await bcrypt.hash(senha, 10);
     const result = await pool.query(
-      'INSERT INTO usuarios (nome, email, senha, admin) VALUES ($1, $2, $3, $4) RETURNING id, nome, email, admin',
-      [nome, email, hash, admin === true || admin === 'true']
+      'INSERT INTO usuarios (nome, email, senha, admin, setor) VALUES ($1, $2, $3, $4, $5) RETURNING id, nome, email, admin, setor',
+      [nome, email, hash, admin === true || admin === 'true', setor || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -37,9 +37,9 @@ router.post('/usuarios', adminMiddleware, async (req, res) => {
   }
 });
 
-// PATCH /api/admin/usuarios/:id — atualiza nome, email e/ou papel admin
+// PATCH /api/admin/usuarios/:id — atualiza nome, email, setor e/ou papel admin
 router.patch('/usuarios/:id', adminMiddleware, async (req, res) => {
-  const { nome, email, admin } = req.body;
+  const { nome, email, admin, setor } = req.body;
   try {
     if (email) {
       const existe = await pool.query(
@@ -54,10 +54,11 @@ router.patch('/usuarios/:id', adminMiddleware, async (req, res) => {
       `UPDATE usuarios
        SET nome  = COALESCE($1, nome),
            email = COALESCE($2, email),
-           admin = COALESCE($3, admin)
-       WHERE id = $4
-       RETURNING id, nome, email, admin`,
-      [nome ?? null, email ?? null, admin ?? null, req.params.id]
+           admin = COALESCE($3, admin),
+           setor = COALESCE($4, setor)
+       WHERE id = $5
+       RETURNING id, nome, email, admin, setor`,
+      [nome ?? null, email ?? null, admin ?? null, setor ? setor.trim() : null, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado' });
     res.json(result.rows[0]);
