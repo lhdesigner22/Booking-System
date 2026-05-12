@@ -12,7 +12,7 @@ import devolucoesRoutes from './routes/devolucoes.js';
 import comentariosRoutes from './routes/comentarios.js';
 import { authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import pool from './config/database.js';
+import { pool } from './config/database.js';
 
 async function runMigrations() {
   try {
