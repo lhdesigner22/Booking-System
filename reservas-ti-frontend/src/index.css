@@ -64,6 +64,8 @@
   --badge-disp-color:     #4ADE80;
   --badge-indisp-bg:      rgba(239,68,68,0.15);
   --badge-indisp-color:   #FCA5A5;
+  --badge-devolvida-bg:   rgba(129,140,248,0.15);
+  --badge-devolvida-color:#818CF8;
 }
 
 /* ─── LIGHT MODE ──────────────────────────────────────────────────────────── */
@@ -112,6 +114,8 @@
   --badge-disp-color:     #166534;
   --badge-indisp-bg:      #FEF2F2;
   --badge-indisp-color:   #991B1B;
+  --badge-devolvida-bg:   #EEF2FF;
+  --badge-devolvida-color:#4338CA;
 }
 
 /* ─── BASE ────────────────────────────────────────────────────────────────── */
@@ -217,8 +221,9 @@ tbody tr:last-child td { border-bottom: none; }
 .badge-aprovada   { background: var(--badge-aprovada-bg);  color: var(--badge-aprovada-color); }
 .badge-cancelada  { background: var(--badge-cancelada-bg); color: var(--badge-cancelada-color); }
 .badge-recusada   { background: var(--badge-recusada-bg);  color: var(--badge-recusada-color); }
-.badge-disponivel   { background: var(--badge-disp-bg);   color: var(--badge-disp-color); }
-.badge-indisponivel { background: var(--badge-indisp-bg); color: var(--badge-indisp-color); }
+.badge-disponivel   { background: var(--badge-disp-bg);       color: var(--badge-disp-color); }
+.badge-indisponivel { background: var(--badge-indisp-bg);     color: var(--badge-indisp-color); }
+.badge-devolvida    { background: var(--badge-devolvida-bg);  color: var(--badge-devolvida-color); }
 
 /* ─── BUTTONS ─────────────────────────────────────────────────────────────── */
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: none; transition: all 0.15s; }

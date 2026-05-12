@@ -9,7 +9,7 @@ import ChatReserva from '../components/ChatReserva.jsx';
 import DateTimePicker from '../components/DateTimePicker.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
-const STATUS_LABEL = { pendente: 'Pendente', aprovada: 'Aprovada', cancelada: 'Cancelada', recusada: 'Recusada' };
+const STATUS_LABEL = { pendente: 'Pendente', aprovada: 'Aprovada', cancelada: 'Cancelada', recusada: 'Recusada', devolvida: 'Devolvida' };
 const CATEGORIAS   = ['Notebook', 'Monitor', 'Teclado', 'Mouse', 'Headset', 'Webcam', 'Cabo', 'Adaptador', 'Outro'];
 const EMPTY_EQ     = { nome: '', descricao: '', categoria: '', numero_serie: '', quantidade_total: 1, disponivel: true };
 const ABAS = [
