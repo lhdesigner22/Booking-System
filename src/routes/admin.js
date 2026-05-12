@@ -74,6 +74,10 @@ router.delete('/usuarios/:id', adminMiddleware, async (req, res) => {
     return res.status(400).json({ error: 'Você não pode excluir sua própria conta.' });
   }
   try {
+    // Remove comentários feitos pelo usuário em qualquer reserva
+    await pool.query('DELETE FROM comentarios WHERE usuario_id = $1', [req.params.id]);
+    // Remove reservas do usuário (comentários nessas reservas cascadeiam)
+    await pool.query('DELETE FROM reservas WHERE usuario_id = $1', [req.params.id]);
     const result = await pool.query(
       'DELETE FROM usuarios WHERE id = $1 RETURNING id',
       [req.params.id]
