@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../config/database.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { enviarEmailResetSenha } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -95,6 +96,52 @@ router.patch('/perfil', authMiddleware, async (req, res) => {
     );
     res.json(result.rows[0]);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/usuarios/esqueci-senha — envia link de reset por e-mail
+router.post('/esqueci-senha', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'E-mail é obrigatório' });
+  try {
+    const result = await pool.query(
+      'SELECT id, nome, email FROM usuarios WHERE email = $1', [email]
+    );
+    // Resposta sempre igual para não revelar se o e-mail existe
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      const token = jwt.sign(
+        { userId: user.id, purpose: 'reset' },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+      const frontendUrl = process.env.FRONTEND_URL || 'https://booking-reservas-ti.vercel.app';
+      await enviarEmailResetSenha({ nome: user.nome, email: user.email, resetUrl: `${frontendUrl}/resetar-senha?token=${token}` });
+    }
+    res.json({ mensagem: 'Se o e-mail estiver cadastrado, você receberá um link em instantes.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/usuarios/resetar-senha — valida token e atualiza senha
+router.post('/resetar-senha', async (req, res) => {
+  const { token, novaSenha } = req.body;
+  if (!token || !novaSenha) return res.status(400).json({ error: 'Token e nova senha são obrigatórios' });
+  if (novaSenha.length < 4) return res.status(400).json({ error: 'A senha deve ter no mínimo 4 caracteres' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.purpose !== 'reset') return res.status(400).json({ error: 'Link inválido' });
+    const hash = await bcrypt.hash(novaSenha, 10);
+    const result = await pool.query(
+      'UPDATE usuarios SET senha = $1 WHERE id = $2 RETURNING id', [hash, decoded.userId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado' });
+    res.json({ mensagem: 'Senha atualizada com sucesso!' });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') return res.status(400).json({ error: 'Link expirado. Solicite um novo.' });
+    if (err.name === 'JsonWebTokenError')  return res.status(400).json({ error: 'Link inválido.' });
     res.status(500).json({ error: err.message });
   }
 });

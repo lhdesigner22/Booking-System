@@ -9,6 +9,7 @@ import Perfil       from './pages/perfil.jsx';
 import Devolucoes   from './pages/devolucoes.jsx';
 import Estoque      from './pages/estoque.jsx';
 import Suporte      from './pages/suporte.jsx';
+import ResetarSenha from './pages/resetar-senha.jsx';
 import { ToastProvider }            from './context/ToastContext.jsx';
 import { AuthProvider, useAuth }    from './context/AuthContext.jsx';
 
@@ -57,6 +58,7 @@ function AnimatedRoutes() {
         <Route path="/devolucoes"   element={<RotaAdmin><Devolucoes /></RotaAdmin>} />
         <Route path="/admin"        element={<RotaAdmin><Admin /></RotaAdmin>} />
         <Route path="/estoque"      element={<RotaAdmin><Estoque /></RotaAdmin>} />
+        <Route path="/resetar-senha" element={<ResetarSenha />} />
         <Route path="*"             element={<Navigate to="/login" replace />} />
       </Routes>
     </AnimatePresence>

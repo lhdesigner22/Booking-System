@@ -21,6 +21,13 @@ export default function Login() {
   const [loading, setLoading]   = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
 
+  // Modal: Esqueci minha senha
+  const [modalEsqueci, setModalEsqueci]       = useState(false);
+  const [esquecEmail, setEsquecEmail]         = useState('');
+  const [esquecLoading, setEsquecLoading]     = useState(false);
+  const [esquecSucesso, setEsquecSucesso]     = useState(false);
+  const [esquecErro, setEsquecErro]           = useState('');
+
   // Modal setor (Google OAuth – primeiro acesso)
   const [modalSetor, setModalSetor]       = useState(false);
   const [setor, setSetor]                 = useState('');
@@ -71,6 +78,21 @@ export default function Login() {
     } catch {
       setSetorErro('Erro ao salvar setor. Tente novamente.');
       setSetorLoading(false);
+    }
+  }
+
+  async function handleEsqueci(e) {
+    e.preventDefault();
+    if (!esquecEmail.trim()) return setEsquecErro('Informe seu e-mail.');
+    setEsquecErro('');
+    setEsquecLoading(true);
+    try {
+      await api.post('/usuarios/esqueci-senha', { email: esquecEmail.trim() });
+      setEsquecSucesso(true);
+    } catch {
+      setEsquecErro('Erro ao enviar. Tente novamente.');
+    } finally {
+      setEsquecLoading(false);
     }
   }
 
@@ -274,6 +296,17 @@ export default function Login() {
               </div>
             </motion.div>
 
+            {/* Link esqueci minha senha */}
+            <motion.div variants={itemVariant} style={{ textAlign: 'right', marginTop: -16, marginBottom: 20 }}>
+              <button
+                type="button"
+                onClick={() => { setModalEsqueci(true); setEsquecSucesso(false); setEsquecErro(''); setEsquecEmail(''); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', padding: 0 }}
+              >
+                Esqueci minha senha
+              </button>
+            </motion.div>
+
             {/* Botão */}
             <motion.div variants={itemVariant}>
               <motion.button
@@ -345,6 +378,76 @@ export default function Login() {
         </div>
 
       </div>
+
+      {/* ── Modal: Esqueci minha senha ── */}
+      <AnimatePresence>
+        {modalEsqueci && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+            onClick={e => e.target === e.currentTarget && setModalEsqueci(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0, transition: { duration: 0.25, ease: [0.22,1,0.36,1] } }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              style={{ background: 'var(--surface)', borderRadius: 16, padding: '32px 28px', width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border)' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="24" height="24" fill="none" stroke="var(--brand-green)" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                  </svg>
+                </div>
+              </div>
+              <h3 style={{ textAlign: 'center', fontSize: 18, fontWeight: 700, marginBottom: 6, color: 'var(--text-primary)' }}>Recuperar senha</h3>
+              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.5 }}>
+                Informe o e-mail da sua conta e enviaremos um link para criar uma nova senha.
+              </p>
+
+              {esquecSucesso ? (
+                <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📧</div>
+                  <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>E-mail enviado!</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    Se o endereço estiver cadastrado, você receberá um link em instantes. Verifique também a caixa de spam.
+                  </p>
+                  <button onClick={() => setModalEsqueci(false)} className="btn btn-primary" style={{ marginTop: 20, width: '100%', justifyContent: 'center' }}>
+                    Fechar
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleEsqueci}>
+                  <AnimatePresence>
+                    {esquecErro && (
+                      <motion.div className="alert alert-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ marginBottom: 12, overflow: 'hidden' }}>
+                        {esquecErro}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="form-label-sm">E-mail</label>
+                    <div className="input-icon-wrap">
+                      <svg className="input-icon" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/>
+                      </svg>
+                      <input className="form-input" type="email" placeholder="seu@email.com" value={esquecEmail}
+                        onChange={e => { setEsquecEmail(e.target.value); setEsquecErro(''); }} autoFocus required />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button type="button" onClick={() => setModalEsqueci(false)} className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>
+                      Cancelar
+                    </button>
+                    <motion.button type="submit" className="btn btn-primary" disabled={esquecLoading} whileTap={{ scale: 0.97 }} style={{ flex: 1, justifyContent: 'center' }}>
+                      {esquecLoading ? <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Spinner /> Enviando...</span> : 'Enviar link'}
+                    </motion.button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PageTransition>
   );
 }

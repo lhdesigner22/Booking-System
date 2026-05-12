@@ -11,6 +11,16 @@ import DateTimePicker from '../components/DateTimePicker.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
 const STATUS_LABEL = { pendente: 'Pendente', aprovada: 'Aprovada', cancelada: 'Cancelada', recusada: 'Recusada', devolvida: 'Devolvida' };
+
+function exportarCSV(linhas, nomeArquivo) {
+  const bom = '﻿';
+  const csv = bom + linhas.map(l => l.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nomeArquivo; a.click();
+  URL.revokeObjectURL(url);
+}
 const CATEGORIAS   = ['Notebook', 'Monitor', 'Teclado', 'Mouse', 'Headset', 'Webcam', 'Cabo', 'Adaptador', 'Outro'];
 const EMPTY_EQ     = { nome: '', descricao: '', categoria: '', numero_serie: '', quantidade_total: 1, disponivel: true };
 const ABAS = [
@@ -527,6 +537,43 @@ export default function Admin() {
               {/* ──────────────── ABA RELATÓRIOS ──────────────── */}
               {aba === 'relatorios' && (
                 <>
+                  {/* Botões de exportação */}
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
+                    <motion.button className="btn btn-ghost" whileTap={{ scale: 0.97 }} style={{ gap: 7, fontSize: 13 }}
+                      onClick={() => {
+                        const linhas = [
+                          ['#', 'Equipamento', 'Usuário', 'E-mail', 'Setor', 'Início', 'Fim', 'Status', 'Quantidade', 'Local de uso'],
+                          ...reservas.map(r => [r.id, r.equipamento_nome, r.usuario_nome, r.usuario_email, r.usuario_setor || '', new Date(r.data_inicio).toLocaleString('pt-BR'), new Date(r.data_fim).toLocaleString('pt-BR'), STATUS_LABEL[r.status] || r.status, r.quantidade || 1, r.local_uso || '']),
+                        ];
+                        exportarCSV(linhas, `reservas_${new Date().toISOString().slice(0,10)}.csv`);
+                      }}>
+                      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      Exportar Reservas
+                    </motion.button>
+                    <motion.button className="btn btn-ghost" whileTap={{ scale: 0.97 }} style={{ gap: 7, fontSize: 13 }}
+                      onClick={() => {
+                        const linhas = [
+                          ['#', 'Nome', 'Categoria', 'Nº Série', 'Qtd Total', 'Disponível'],
+                          ...equipamentos.map(e => [e.id, e.nome, e.categoria || '', e.numero_serie || '', e.quantidade_total, e.disponivel ? 'Sim' : 'Não']),
+                        ];
+                        exportarCSV(linhas, `equipamentos_${new Date().toISOString().slice(0,10)}.csv`);
+                      }}>
+                      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      Exportar Equipamentos
+                    </motion.button>
+                    <motion.button className="btn btn-ghost" whileTap={{ scale: 0.97 }} style={{ gap: 7, fontSize: 13 }}
+                      onClick={() => {
+                        const linhas = [
+                          ['#', 'Nome', 'E-mail', 'Setor', 'Admin'],
+                          ...usuarios.map(u => [u.id, u.nome, u.email, u.setor || '', u.admin ? 'Sim' : 'Não']),
+                        ];
+                        exportarCSV(linhas, `usuarios_${new Date().toISOString().slice(0,10)}.csv`);
+                      }}>
+                      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      Exportar Usuários
+                    </motion.button>
+                  </div>
+
                   {loading || !relatorios ? (
                     <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Carregando relatórios...</div>
                   ) : (
