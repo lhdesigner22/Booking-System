@@ -8,6 +8,7 @@ import SkeletonTable from '../components/SkeletonTable.jsx';
 import CalendarioDisponibilidade from '../components/CalendarioDisponibilidade.jsx';
 import DateTimePicker from '../components/DateTimePicker.jsx';
 import Modal from '../components/Modal.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import ChatReserva from '../components/ChatReserva.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
@@ -40,6 +41,7 @@ export default function Reservas() {
   const [showCal, setShowCal]       = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [detalhe, setDetalhe]       = useState(null);
+  const [confirmDlg, setConfirmDlg] = useState({ open: false, title: '', message: '', action: null });
   const prevStatusRef               = useRef({});
   const location = useLocation();
   const toast    = useToast();
@@ -92,13 +94,19 @@ export default function Reservas() {
     } finally { setSubmitting(false); }
   }
 
-  async function cancelar(id) {
-    if (!confirm('Cancelar esta reserva?')) return;
-    try {
-      await api.patch(`/reservas/${id}/status`, { status: 'cancelada' });
-      toast({ message: 'Reserva cancelada.', type: 'info' });
-      carregarReservas();
-    } catch { toast({ message: 'Erro ao cancelar', type: 'error' }); }
+  function cancelar(id) {
+    setConfirmDlg({
+      open: true,
+      title: 'Cancelar reserva',
+      message: 'Tem certeza que deseja cancelar esta reserva?',
+      action: async () => {
+        try {
+          await api.patch(`/reservas/${id}/status`, { status: 'cancelada' });
+          toast({ message: 'Reserva cancelada.', type: 'info' });
+          carregarReservas();
+        } catch { toast({ message: 'Erro ao cancelar', type: 'error' }); }
+      },
+    });
   }
 
   const filtradas = reservas.filter(r => {
@@ -551,6 +559,15 @@ export default function Reservas() {
           );
         })()}
       </Modal>
+
+      <ConfirmDialog
+        open={confirmDlg.open}
+        title={confirmDlg.title}
+        message={confirmDlg.message}
+        confirmLabel="Cancelar reserva"
+        onClose={() => setConfirmDlg(d => ({ ...d, open: false }))}
+        onConfirm={() => confirmDlg.action?.()}
+      />
     </PageTransition>
   );
 }

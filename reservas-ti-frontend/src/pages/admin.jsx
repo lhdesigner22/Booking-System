@@ -4,6 +4,7 @@ import api from '../services/api';
 import Sidebar from '../components/Sidebar';
 import PageTransition from '../components/PageTransition.jsx';
 import Modal from '../components/Modal.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import SkeletonTable from '../components/SkeletonTable.jsx';
 import ChatReserva from '../components/ChatReserva.jsx';
 import DateTimePicker from '../components/DateTimePicker.jsx';
@@ -79,6 +80,7 @@ export default function Admin() {
   const [editUser,      setEditUser]      = useState(null);
   const [resetUser,     setResetUser]     = useState(null);
   const [novaSenha,     setNovaSenha]     = useState('');
+  const [confirmDlg,    setConfirmDlg]    = useState({ open: false, title: '', message: '', action: null });
 
   useEffect(() => { carregarDados(); }, []);
 
@@ -156,13 +158,19 @@ export default function Admin() {
     } finally { setSubmitting(false); }
   }
 
-  async function excluirEquipamento(id) {
-    if (!confirm('Excluir este equipamento?')) return;
-    try {
-      await api.delete(`/equipamentos/${id}`);
-      carregarDados();
-      toast({ message: 'Equipamento removido.', type: 'info' });
-    } catch { toast({ message: 'Erro ao excluir equipamento', type: 'error' }); }
+  function excluirEquipamento(id) {
+    setConfirmDlg({
+      open: true,
+      title: 'Excluir equipamento',
+      message: 'Excluir este equipamento? Esta ação não pode ser desfeita.',
+      action: async () => {
+        try {
+          await api.delete(`/equipamentos/${id}`);
+          carregarDados();
+          toast({ message: 'Equipamento removido.', type: 'info' });
+        } catch { toast({ message: 'Erro ao excluir equipamento', type: 'error' }); }
+      },
+    });
   }
 
   /* ── Usuários ──────────────────────────────────────────── */
@@ -193,15 +201,21 @@ export default function Admin() {
     } finally { setSubmitting(false); }
   }
 
-  async function excluirUsuario(id) {
-    if (!confirm('Excluir este usuário?')) return;
-    try {
-      await api.delete(`/admin/usuarios/${id}`);
-      carregarDados();
-      toast({ message: 'Usuário removido.', type: 'info' });
-    } catch (err) {
-      toast({ message: err.response?.data?.error || 'Erro ao excluir usuário', type: 'error' });
-    }
+  function excluirUsuario(id) {
+    setConfirmDlg({
+      open: true,
+      title: 'Excluir usuário',
+      message: 'Excluir este usuário? Todas as reservas e comentários vinculados serão removidos.',
+      action: async () => {
+        try {
+          await api.delete(`/admin/usuarios/${id}`);
+          carregarDados();
+          toast({ message: 'Usuário removido.', type: 'info' });
+        } catch (err) {
+          toast({ message: err.response?.data?.error || 'Erro ao excluir usuário', type: 'error' });
+        }
+      },
+    });
   }
 
   async function resetarSenha(e) {
@@ -836,6 +850,15 @@ export default function Admin() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={confirmDlg.open}
+        title={confirmDlg.title}
+        message={confirmDlg.message}
+        confirmLabel="Excluir"
+        onClose={() => setConfirmDlg(d => ({ ...d, open: false }))}
+        onConfirm={() => confirmDlg.action?.()}
+      />
     </PageTransition>
   );
 }

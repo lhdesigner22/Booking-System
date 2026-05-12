@@ -5,6 +5,7 @@ import Sidebar from '../components/Sidebar';
 import PageTransition from '../components/PageTransition.jsx';
 import SkeletonTable from '../components/SkeletonTable.jsx';
 import Modal from '../components/Modal.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
 const CATEGORIAS = ['Notebook', 'Monitor', 'Teclado', 'Mouse', 'Headset', 'Webcam', 'Cabo', 'Adaptador', 'Outro'];
@@ -38,6 +39,7 @@ export default function Estoque() {
   const [editando, setEditando]               = useState(null);
   const [form, setForm]                       = useState(EMPTY);
   const [submitting, setSubmitting]           = useState(false);
+  const [confirmDlg, setConfirmDlg]           = useState({ open: false, title: '', message: '', action: null });
   const toast = useToast();
 
   useEffect(() => { carregar(); }, []);
@@ -95,15 +97,21 @@ export default function Estoque() {
     }
   }
 
-  async function excluir(item) {
-    if (!window.confirm(`Remover "${item.nome}" do estoque?`)) return;
-    try {
-      await api.delete(`/equipamentos/${item.id}`);
-      toast({ message: 'Equipamento removido' });
-      carregar();
-    } catch (err) {
-      toast({ message: err.response?.data?.error || 'Erro ao remover', type: 'error' });
-    }
+  function excluir(item) {
+    setConfirmDlg({
+      open: true,
+      title: 'Remover equipamento',
+      message: `Remover "${item.nome}" do estoque? Esta ação não pode ser desfeita.`,
+      action: async () => {
+        try {
+          await api.delete(`/equipamentos/${item.id}`);
+          toast({ message: 'Equipamento removido' });
+          carregar();
+        } catch (err) {
+          toast({ message: err.response?.data?.error || 'Erro ao remover', type: 'error' });
+        }
+      },
+    });
   }
 
   const categorias = useMemo(() => {
@@ -371,6 +379,15 @@ export default function Estoque() {
           </motion.button>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={confirmDlg.open}
+        title={confirmDlg.title}
+        message={confirmDlg.message}
+        confirmLabel="Remover"
+        onClose={() => setConfirmDlg(d => ({ ...d, open: false }))}
+        onConfirm={() => confirmDlg.action?.()}
+      />
     </PageTransition>
   );
 }
