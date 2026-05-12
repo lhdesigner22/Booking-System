@@ -94,6 +94,13 @@ export default function Reservas() {
     } finally { setSubmitting(false); }
   }
 
+  function duplicar(r) {
+    setForm({ equipamento_id: r.equipamento_id, data_inicio: '', data_fim: '', quantidade: r.quantidade || 1, local_uso: r.local_uso || '' });
+    setEquipNome(r.equipamento_nome);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function cancelar(id) {
     setConfirmDlg({
       open: true,
@@ -470,17 +477,28 @@ export default function Reservas() {
                                 {cfg.icon} {STATUS_LABEL[r.status]}
                               </span>
                             </td>
-                            <td onClick={e => e.stopPropagation()}>
-                              {r.status === 'pendente' && (
+                            <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                {r.status === 'pendente' && (
+                                  <motion.button
+                                    className="btn btn-ghost btn-sm"
+                                    whileHover={{ scale: 1.04, color: '#F87171' }}
+                                    whileTap={{ scale: 0.96 }}
+                                    onClick={() => cancelar(r.id)}
+                                  >
+                                    Cancelar
+                                  </motion.button>
+                                )}
                                 <motion.button
                                   className="btn btn-ghost btn-sm"
-                                  whileHover={{ scale: 1.04, color: '#F87171' }}
+                                  title="Reservar novamente o mesmo equipamento"
+                                  whileHover={{ scale: 1.04, color: '#4ADE80' }}
                                   whileTap={{ scale: 0.96 }}
-                                  onClick={() => cancelar(r.id)}
+                                  onClick={() => duplicar(r)}
                                 >
-                                  Cancelar
+                                  Duplicar
                                 </motion.button>
-                              )}
+                              </div>
                             </td>
                           </motion.tr>
                         );

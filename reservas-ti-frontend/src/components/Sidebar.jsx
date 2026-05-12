@@ -86,13 +86,21 @@ export default function Sidebar() {
   const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
 
-  const [foto, setFoto] = useState(null);
+  const [foto, setFoto]               = useState(null);
+  const [pendentes, setPendentes]     = useState(0);
 
   useEffect(() => {
     api.get('/usuarios/perfil').then(r => {
       setUser(r.data);
       const salva = localStorage.getItem(`avatar_foto_${r.data.id}`);
       if (salva) setFoto(salva);
+      if (r.data.admin) {
+        const fetchPendentes = () =>
+          api.get('/admin/pendentes-count').then(res => setPendentes(res.data.count)).catch(() => {});
+        fetchPendentes();
+        const interval = setInterval(fetchPendentes, 30000);
+        return () => clearInterval(interval);
+      }
     }).catch(() => {});
   }, []);
 
@@ -120,7 +128,7 @@ export default function Sidebar() {
     ...(user?.admin ? [
       { to: '/devolucoes', label: 'Devoluções',   icon: <IconReturn />,  badge: 'ADMIN' },
       { to: '/estoque',    label: 'Estoque',       icon: <IconEstoque />, badge: 'ADMIN' },
-      { to: '/admin',      label: 'Painel Admin',  icon: <IconShield />,  badge: 'ADMIN' },
+      { to: '/admin',      label: 'Painel Admin',  icon: <IconShield />,  badge: 'ADMIN', pendentes },
     ] : []),
   ];
 
@@ -192,6 +200,20 @@ export default function Sidebar() {
                 }}>
                   {l.badge}
                 </span>
+              )}
+              {l.pendentes > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }} animate={{ scale: 1 }}
+                  style={{
+                    minWidth: 18, height: 18, borderRadius: 9,
+                    background: '#F59E0B', color: '#0A1628',
+                    fontSize: 10, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 5px',
+                  }}
+                >
+                  {l.pendentes > 99 ? '99+' : l.pendentes}
+                </motion.span>
               )}
               {active && (
                 <motion.div

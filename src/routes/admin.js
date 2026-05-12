@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import { pool } from '../config/database.js';
 import { adminMiddleware } from '../middleware/adminAuth.js';
+import { notificarUsuarioStatusReserva } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -120,13 +121,22 @@ router.patch('/reservas/:id/status', adminMiddleware, async (req, res) => {
 
   try {
     const result = await pool.query(
-      `UPDATE reservas SET status = $1 WHERE id = $2 RETURNING *`,
+      `UPDATE reservas r SET status = $1
+       FROM equipamentos e, usuarios u
+       WHERE r.id = $2 AND r.equipamento_id = e.id AND r.usuario_id = u.id
+       RETURNING r.*, e.nome AS equipamento_nome, u.nome AS usuario_nome, u.email AS usuario_email`,
       [status, req.params.id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Reserva não encontrada' });
     }
-    res.json(result.rows[0]);
+    const r = result.rows[0];
+    notificarUsuarioStatusReserva({
+      nome: r.usuario_nome, email: r.usuario_email,
+      equipamento: r.equipamento_nome, status,
+      data_inicio: r.data_inicio, data_fim: r.data_fim,
+    });
+    res.json(r);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -146,6 +156,16 @@ router.patch('/usuarios/:id/resetsenha', adminMiddleware, async (req, res) => {
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado' });
     res.json({ mensagem: `Senha de ${result.rows[0].nome} redefinida com sucesso` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/pendentes-count — contagem rápida para badge da sidebar
+router.get('/pendentes-count', adminMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query("SELECT COUNT(*) AS count FROM reservas WHERE status = 'pendente'");
+    res.json({ count: parseInt(result.rows[0].count, 10) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
