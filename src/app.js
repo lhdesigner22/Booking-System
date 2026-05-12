@@ -12,6 +12,20 @@ import devolucoesRoutes from './routes/devolucoes.js';
 import comentariosRoutes from './routes/comentarios.js';
 import { authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import pool from './config/database.js';
+
+async function runMigrations() {
+  try {
+    await pool.query(`
+      ALTER TABLE comentarios DROP CONSTRAINT IF EXISTS comentarios_usuario_id_fkey;
+      ALTER TABLE comentarios ADD CONSTRAINT comentarios_usuario_id_fkey
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE;
+    `);
+    console.log('✔ Migração FK comentarios_usuario_id aplicada');
+  } catch (err) {
+    console.error('Erro na migração FK:', err.message);
+  }
+}
 
 dotenv.config();
 
@@ -66,8 +80,10 @@ app.use((_req, res) => res.status(404).json({ error: 'Rota não encontrada' }));
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+runMigrations().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+  });
 });
 
 export default app;

@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS reservas (
 CREATE TABLE IF NOT EXISTS comentarios (
   id          SERIAL PRIMARY KEY,
   reserva_id  INTEGER NOT NULL REFERENCES reservas(id) ON DELETE CASCADE,
-  usuario_id  INTEGER NOT NULL REFERENCES usuarios(id),
+  usuario_id  INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
   mensagem    TEXT    NOT NULL,
   created_at  TIMESTAMP DEFAULT NOW()
 );
