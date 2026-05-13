@@ -75,7 +75,7 @@ export default function Login() {
           setModalSetor(true);
         } else {
           login(res.data.token);
-          navigate('/equipamentos');
+          navigate('/dashboard');
         }
       } catch { setErro('Erro ao autenticar com o Google. Tente novamente.'); }
       finally { setLoadingGoogle(false); }
@@ -91,7 +91,7 @@ export default function Login() {
       await api.patch('/usuarios/perfil', { setor: setor.trim() }, {
         headers: { Authorization: `Bearer ${pendingToken}` },
       });
-      navigate('/equipamentos');
+      navigate('/dashboard');
     } catch {
       setSetorErro('Erro ao salvar setor. Tente novamente.');
       setSetorLoading(false);
@@ -115,7 +115,7 @@ export default function Login() {
     try {
       const res = await api.post('/usuarios/login', form);
       login(res.data.token);
-      navigate('/equipamentos');
+      navigate('/dashboard');
     } catch (err) {
       setErro(err.response?.data?.error || 'Credenciais inválidas. Tente novamente.');
     } finally { setLoading(false); }

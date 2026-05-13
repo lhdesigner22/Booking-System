@@ -60,6 +60,7 @@ export default function Equipamentos() {
   const [loading, setLoading]           = useState(true);
   const [busca, setBusca]               = useState('');
   const [filtroDisp, setFiltroDisp]     = useState('todos');
+  const [filtroCategoria, setFiltroCategoria] = useState('todas');
   const navigate = useNavigate();
   const toast    = useToast();
 
@@ -72,6 +73,11 @@ export default function Equipamentos() {
 
   const disponiveis = equipamentos.filter(e => e.disponivel && e.quantidade_disponivel > 0).length;
 
+  // Extract unique categories (uses 'categoria' or 'tipo' field)
+  const categorias = ['todas', ...Array.from(
+    new Set(equipamentos.map(e => e.categoria || e.tipo).filter(Boolean))
+  ).sort()];
+
   const filtrados = equipamentos.filter(eq => {
     const passaBusca = eq.nome.toLowerCase().includes(busca.toLowerCase()) ||
       (eq.descricao || '').toLowerCase().includes(busca.toLowerCase());
@@ -79,7 +85,9 @@ export default function Equipamentos() {
     const passaDisp =
       filtroDisp === 'todos' ? true :
       filtroDisp === 'disponivel' ? estaDisponivel : !estaDisponivel;
-    return passaBusca && passaDisp;
+    const catEq = eq.categoria || eq.tipo || null;
+    const passaCategoria = filtroCategoria === 'todas' ? true : catEq === filtroCategoria;
+    return passaBusca && passaDisp && passaCategoria;
   });
 
   return (
@@ -164,6 +172,56 @@ export default function Equipamentos() {
               ))}
             </div>
           </motion.div>
+
+          {/* Category chips — only shown when there are named categories */}
+          {!loading && categorias.length > 1 && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.32 }}
+              style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}
+            >
+              {categorias.map(cat => (
+                <motion.button
+                  key={cat}
+                  onClick={() => setFiltroCategoria(cat)}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.95 }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '5px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer', transition: 'all 0.18s',
+                    background: filtroCategoria === cat
+                      ? 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)'
+                      : 'var(--card)',
+                    color: filtroCategoria === cat ? '#fff' : 'var(--text-muted)',
+                    border: filtroCategoria === cat
+                      ? '1.5px solid transparent'
+                      : '1.5px solid var(--border)',
+                    boxShadow: filtroCategoria === cat ? '0 2px 12px rgba(34,197,94,0.25)' : 'none',
+                  }}
+                >
+                  {cat === 'todas' ? (
+                    <>
+                      <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                      </svg>
+                      Todos os tipos
+                    </>
+                  ) : (
+                    <>
+                      <span style={{
+                        width: 6, height: 6, borderRadius: '50%',
+                        background: filtroCategoria === cat ? '#fff' : '#4ADE80',
+                        flexShrink: 0,
+                      }} />
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </>
+                  )}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
 
           {/* Grid */}
           {loading ? (

@@ -6,6 +6,12 @@ import logo from '../assets/logo2.png';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
+const IconDashboard = () => (
+  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+    <rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+  </svg>
+);
 const IconMonitor = () => (
   <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
     <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
@@ -121,6 +127,7 @@ export default function Sidebar() {
   }
 
   const links = [
+    { to: '/dashboard',    label: 'Dashboard',       icon: <IconDashboard /> },
     { to: '/equipamentos', label: 'Equipamentos',    icon: <IconMonitor /> },
     { to: '/reservas',     label: 'Minhas Reservas', icon: <IconCalendar /> },
     { to: '/perfil',       label: 'Meu Perfil',      icon: <IconUser /> },
