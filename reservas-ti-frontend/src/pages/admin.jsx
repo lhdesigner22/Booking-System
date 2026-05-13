@@ -268,16 +268,35 @@ export default function Admin() {
           {/* Stats */}
           <div className="stats-row">
             {[
-              { label: 'Total de reservas',    value: reservas.length,      color: '#4F46E5' },
-              { label: 'Aguardando aprovação', value: pendentes,            color: '#F59E0B' },
-              { label: 'Aprovadas',            value: counts.aprovada || 0, color: '#22C55E' },
-              { label: 'Usuários',             value: usuarios.length,      color: '#6366F1' },
+              { label: 'Total de reservas',    value: reservas.length,      color: '#818CF8', bg: 'rgba(99,102,241,0.1)',  border: 'rgba(99,102,241,0.2)',
+                icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
+              { label: 'Aguardando aprovação', value: pendentes,            color: '#FCD34D', bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.2)',
+                icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+              { label: 'Aprovadas',            value: counts.aprovada || 0, color: '#4ADE80', bg: 'rgba(34,197,94,0.1)',   border: 'rgba(34,197,94,0.2)',
+                icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+              { label: 'Usuários cadastrados', value: usuarios.length,      color: '#C084FC', bg: 'rgba(192,132,252,0.1)', border: 'rgba(192,132,252,0.2)',
+                icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75M9 7a4 4 0 100 8 4 4 0 000-8z' },
             ].map((s, i) => (
               <motion.div key={s.label} className="stat-card"
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-                whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,0.10)' }}>
-                <div className="stat-label">{s.label}</div>
-                <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07, ease: [0.22,1,0.36,1] }}
+                whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(0,0,0,0.15)' }}
+                style={{ borderTop: `3px solid ${s.color}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div className="stat-label">{s.label}</div>
+                    <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+                  </div>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: s.bg, border: `1px solid ${s.border}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: s.color, flexShrink: 0,
+                  }}>
+                    <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d={s.icon}/>
+                    </svg>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>

@@ -128,9 +128,12 @@ export default function Devolucoes() {
           {/* Stat cards */}
           <div className="stats-row">
             {[
-              { label: 'Aguardando Devolução', value: totalAguardando, color: '#4ADE80' },
-              { label: 'Devoluções Atrasadas', value: totalAtrasadas,  color: '#F87171' },
-              { label: 'Devolvidas',           value: totalDevolvidas, color: '#818CF8' },
+              { label: 'Aguardando Devolução', value: totalAguardando, color: '#4ADE80', bg: 'rgba(34,197,94,0.1)',   border: 'rgba(34,197,94,0.2)',
+                icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+              { label: 'Devoluções Atrasadas', value: totalAtrasadas,  color: '#F87171', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.2)',
+                icon: 'M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z' },
+              { label: 'Devolvidas',           value: totalDevolvidas, color: '#818CF8', bg: 'rgba(129,140,248,0.1)', border: 'rgba(129,140,248,0.2)',
+                icon: 'M9 14l-4-4 4-4m11 4H5' },
             ].map((c, i) => (
               <motion.div
                 key={c.label}
@@ -141,9 +144,23 @@ export default function Devolucoes() {
                 whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(0,0,0,0.15)' }}
                 style={{ borderTop: `3px solid ${c.color}` }}
               >
-                <div className="stat-label">{c.label}</div>
-                <div className="stat-value" style={{ color: c.color }}>
-                  {loading ? '—' : c.value}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div className="stat-label">{c.label}</div>
+                    <div className="stat-value" style={{ color: c.color }}>
+                      {loading ? '—' : c.value}
+                    </div>
+                  </div>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: c.bg, border: `1px solid ${c.border}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: c.color, flexShrink: 0,
+                  }}>
+                    <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d={c.icon}/>
+                    </svg>
+                  </div>
                 </div>
               </motion.div>
             ))}

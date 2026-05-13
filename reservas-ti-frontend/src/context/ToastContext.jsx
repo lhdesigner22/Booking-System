@@ -50,23 +50,17 @@ const ICONS = {
   ),
 };
 
-const STYLES = {
-  success: { bg: '#ECFDF5', border: '#6EE7B7', color: '#065F46', icon: '#10B981' },
-  error:   { bg: '#FEF2F2', border: '#FECACA', color: '#991B1B', icon: '#EF4444' },
-  info:    { bg: '#EFF6FF', border: '#BFDBFE', color: '#1E40AF', icon: '#3B82F6' },
-};
-
 function ToastContainer({ toasts, onRemove }) {
   return (
     <div style={{
       position: 'fixed', bottom: 24, right: 24,
       zIndex: 9999,
-      display: 'flex', flexDirection: 'column', gap: 10,
+      display: 'flex', flexDirection: 'column', gap: 8,
       pointerEvents: 'none',
     }}>
       <AnimatePresence mode="popLayout">
         {toasts.map(t => {
-          const s = STYLES[t.type] || STYLES.success;
+          const type = t.type || 'success';
           return (
             <motion.div
               key={t.id}
@@ -76,28 +70,11 @@ function ToastContainer({ toasts, onRemove }) {
               exit={{ opacity: 0, x: 48, scale: 0.92 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               onClick={() => onRemove(t.id)}
-              style={{
-                pointerEvents: 'all',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '12px 16px',
-                borderRadius: 12,
-                background: s.bg,
-                border: `1px solid ${s.border}`,
-                color: s.color,
-                fontSize: 14,
-                fontWeight: 500,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
-                maxWidth: 340,
-                minWidth: 240,
-                userSelect: 'none',
-              }}
+              className={`toast-item toast-${type}`}
             >
-              <span style={{ color: s.icon, flexShrink: 0 }}>{ICONS[t.type]}</span>
+              <span className={`toast-icon-${type}`}>{ICONS[type]}</span>
               <span style={{ flex: 1 }}>{t.message}</span>
-              <span style={{ opacity: 0.4, fontSize: 16, lineHeight: 1 }}>×</span>
+              <span style={{ opacity: 0.35, fontSize: 16, lineHeight: 1, flexShrink: 0 }}>×</span>
             </motion.div>
           );
         })}
