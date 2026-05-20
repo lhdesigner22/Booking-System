@@ -480,17 +480,17 @@ export default function Estoque() {
         title="Retirada de Item"
         subtitle="Registre a saída do equipamento e para quem ele foi destinado"
       >
-        {/* Aviso */}
+        {/* Info */}
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
           padding: '10px 14px', borderRadius: 10, marginBottom: 20,
-          background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.2)',
+          background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.2)',
         }}>
-          <svg width="15" height="15" fill="none" stroke="#F87171" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: 1 }}>
+          <svg width="15" height="15" fill="none" stroke="#818CF8" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: 1 }}>
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <p style={{ fontSize: 12, color: 'rgba(248,113,113,0.85)', margin: 0, lineHeight: 1.5 }}>
-            A quantidade retirada será <strong>deduzida permanentemente</strong> do estoque. O registro ficará salvo no histórico de retiradas.
+          <p style={{ fontSize: 12, color: 'rgba(129,140,248,0.9)', margin: 0, lineHeight: 1.5 }}>
+            Preencha os dados do colaborador que está levando o item. A movimentação será salva no <strong>histórico de retiradas</strong> para rastreamento.
           </p>
         </div>
 
