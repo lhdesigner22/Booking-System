@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import Sidebar from '../components/Sidebar';
@@ -52,7 +52,16 @@ export default function Estoque() {
   const [modalRetirada, setModalRetirada]     = useState(false);
   const [formRetirada, setFormRetirada]       = useState(EMPTY_RETIRADA);
   const [submittingRetirada, setSubmittingRetirada] = useState(false);
+  const [tecnicoNome, setTecnicoNome]               = useState('');
   const toast = useToast();
+
+  // Busca nome do técnico logado uma única vez
+  const tecnicoFetched = useRef(false);
+  useEffect(() => {
+    if (tecnicoFetched.current) return;
+    tecnicoFetched.current = true;
+    api.get('/usuarios/perfil').then(r => setTecnicoNome(r.data.nome)).catch(() => {});
+  }, []);
 
   useEffect(() => { carregar(); }, []);
 
@@ -585,6 +594,23 @@ export default function Estoque() {
             value={formRetirada.observacoes}
             onChange={e => setFormRetirada(f => ({ ...f, observacoes: e.target.value }))} />
         </div>
+
+        {/* Técnico responsável */}
+        {tecnicoNome && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 12px', borderRadius: 8, marginTop: 16,
+            background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)',
+          }}>
+            <svg width="13" height="13" fill="none" stroke="#4ADE80" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Técnico responsável:{' '}
+              <strong style={{ color: '#4ADE80' }}>{tecnicoNome}</strong>
+            </span>
+          </div>
+        )}
 
         <div className="modal-footer">
           <motion.button className="btn btn-ghost" whileTap={{ scale: 0.97 }}

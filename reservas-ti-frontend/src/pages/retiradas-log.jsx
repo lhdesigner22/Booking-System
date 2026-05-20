@@ -349,8 +349,24 @@ export default function RetiradasLog() {
                           </td>
 
                           {/* Responsável */}
-                          <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                            {r.responsavel_nome || <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                          <td>
+                            {r.responsavel_nome ? (
+                              <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                fontSize: 12, fontWeight: 600,
+                                padding: '2px 10px', borderRadius: 99,
+                                background: 'rgba(34,197,94,0.1)',
+                                border: '1px solid rgba(34,197,94,0.2)',
+                                color: '#4ADE80',
+                              }}>
+                                <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                                {r.responsavel_nome}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
+                            )}
                           </td>
 
                           {/* Observações */}
