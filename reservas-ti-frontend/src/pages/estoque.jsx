@@ -10,6 +10,15 @@ import { useToast } from '../context/ToastContext.jsx';
 
 const CATEGORIAS = ['Notebook', 'Monitor', 'Teclado', 'Mouse', 'Headset', 'Webcam', 'Cabo', 'Adaptador', 'Outro'];
 
+const EMPTY_RETIRADA = {
+  colaborador_nome: '',
+  colaborador_email: '',
+  local_setor: '',
+  equipamento_id: '',
+  quantidade: 1,
+  observacoes: '',
+};
+
 function StockBar({ total, emUso }) {
   const disponivel = Math.max(total - emUso, 0);
   const pct = total > 0 ? Math.round((emUso / total) * 100) : 0;
@@ -40,6 +49,9 @@ export default function Estoque() {
   const [form, setForm]                       = useState(EMPTY);
   const [submitting, setSubmitting]           = useState(false);
   const [confirmDlg, setConfirmDlg]           = useState({ open: false, title: '', message: '', action: null });
+  const [modalRetirada, setModalRetirada]     = useState(false);
+  const [formRetirada, setFormRetirada]       = useState(EMPTY_RETIRADA);
+  const [submittingRetirada, setSubmittingRetirada] = useState(false);
   const toast = useToast();
 
   useEffect(() => { carregar(); }, []);
@@ -94,6 +106,39 @@ export default function Estoque() {
       toast({ message: err.response?.data?.error || 'Erro ao salvar', type: 'error' });
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function abrirRetirada() {
+    setFormRetirada(EMPTY_RETIRADA);
+    setModalRetirada(true);
+  }
+
+  async function confirmarRetirada() {
+    const f = formRetirada;
+    if (!f.colaborador_nome.trim()) return toast({ message: 'Informe o nome do colaborador', type: 'error' });
+    if (!f.colaborador_email.trim()) return toast({ message: 'Informe o e-mail do colaborador', type: 'error' });
+    if (!f.local_setor.trim())      return toast({ message: 'Informe o local/setor', type: 'error' });
+    if (!f.equipamento_id)          return toast({ message: 'Selecione um equipamento', type: 'error' });
+    if (!f.quantidade || f.quantidade < 1) return toast({ message: 'Quantidade inválida', type: 'error' });
+
+    setSubmittingRetirada(true);
+    try {
+      await api.post('/retiradas', {
+        colaborador_nome:  f.colaborador_nome.trim(),
+        colaborador_email: f.colaborador_email.trim(),
+        local_setor:       f.local_setor.trim(),
+        equipamento_id:    f.equipamento_id,
+        quantidade:        parseInt(f.quantidade, 10),
+        observacoes:       f.observacoes.trim() || null,
+      });
+      toast({ message: 'Retirada registrada e estoque atualizado!' });
+      setModalRetirada(false);
+      carregar();
+    } catch (err) {
+      toast({ message: err.response?.data?.error || 'Erro ao registrar retirada', type: 'error' });
+    } finally {
+      setSubmittingRetirada(false);
     }
   }
 
@@ -159,18 +204,34 @@ export default function Estoque() {
               <h2>Controle de Estoque</h2>
               <p>Gerencie quantidades, categorias e patrimônio dos equipamentos</p>
             </div>
-            <motion.button
-              className="btn btn-primary"
-              onClick={abrirNovo}
-              whileHover={{ scale: 1.03, boxShadow: '0 4px 20px rgba(34,197,94,0.3)' }}
-              whileTap={{ scale: 0.97 }}
-              style={{ gap: 8 }}
-            >
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              Novo Equipamento
-            </motion.button>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <motion.button
+                className="btn btn-ghost"
+                onClick={abrirRetirada}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                style={{ gap: 8, borderColor: 'rgba(248,113,113,0.4)', color: '#F87171' }}
+              >
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+                  <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+                </svg>
+                Retirada de Item
+              </motion.button>
+
+              <motion.button
+                className="btn btn-primary"
+                onClick={abrirNovo}
+                whileHover={{ scale: 1.03, boxShadow: '0 4px 20px rgba(34,197,94,0.3)' }}
+                whileTap={{ scale: 0.97 }}
+                style={{ gap: 8 }}
+              >
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Novo Equipamento
+              </motion.button>
+            </div>
           </motion.div>
 
           {/* Stat cards */}
@@ -388,6 +449,137 @@ export default function Estoque() {
         onClose={() => setConfirmDlg(d => ({ ...d, open: false }))}
         onConfirm={() => confirmDlg.action?.()}
       />
+
+      {/* ── Modal: Retirada de Item ── */}
+      <Modal
+        open={modalRetirada}
+        onClose={() => setModalRetirada(false)}
+        title="Retirada de Item"
+        subtitle="Registre a saída do equipamento e para quem ele foi destinado"
+      >
+        {/* Aviso */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          padding: '10px 14px', borderRadius: 10, marginBottom: 20,
+          background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.2)',
+        }}>
+          <svg width="15" height="15" fill="none" stroke="#F87171" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: 1 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p style={{ fontSize: 12, color: 'rgba(248,113,113,0.85)', margin: 0, lineHeight: 1.5 }}>
+            A quantidade retirada será <strong>deduzida permanentemente</strong> do estoque. O registro ficará salvo no histórico de retiradas.
+          </p>
+        </div>
+
+        {/* Colaborador nome */}
+        <div className="form-group">
+          <label className="form-label">Nome do colaborador *</label>
+          <div className="input-icon-wrap">
+            <svg className="input-icon" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+            <input className="form-input" placeholder="Nome completo"
+              value={formRetirada.colaborador_nome}
+              onChange={e => setFormRetirada(f => ({ ...f, colaborador_nome: e.target.value }))} />
+          </div>
+        </div>
+
+        {/* Colaborador email */}
+        <div className="form-group">
+          <label className="form-label">E-mail *</label>
+          <div className="input-icon-wrap">
+            <svg className="input-icon" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/>
+            </svg>
+            <input className="form-input" type="email" placeholder="colaborador@email.com"
+              value={formRetirada.colaborador_email}
+              onChange={e => setFormRetirada(f => ({ ...f, colaborador_email: e.target.value }))} />
+          </div>
+        </div>
+
+        {/* Local/Setor */}
+        <div className="form-group">
+          <label className="form-label">Local / Setor *</label>
+          <div className="input-icon-wrap">
+            <svg className="input-icon" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <input className="form-input" placeholder="Ex: Sala 204, Administração, Sede..."
+              value={formRetirada.local_setor}
+              onChange={e => setFormRetirada(f => ({ ...f, local_setor: e.target.value }))} />
+          </div>
+        </div>
+
+        {/* Equipamento */}
+        <div className="form-group">
+          <label className="form-label">Item retirado *</label>
+          <select className="form-input"
+            value={formRetirada.equipamento_id}
+            onChange={e => setFormRetirada(f => ({ ...f, equipamento_id: e.target.value, quantidade: 1 }))}
+          >
+            <option value="">Selecione o equipamento...</option>
+            {itens
+              .filter(i => i.quantidade_disponivel > 0)
+              .map(i => (
+                <option key={i.id} value={i.id}>
+                  {i.nome}{i.categoria ? ` — ${i.categoria}` : ''} ({i.quantidade_disponivel} disponível)
+                </option>
+              ))
+            }
+          </select>
+          {itens.filter(i => i.quantidade_disponivel > 0).length === 0 && !loading && (
+            <p style={{ fontSize: 12, color: '#F87171', marginTop: 6 }}>
+              ⚠ Nenhum equipamento com estoque disponível no momento.
+            </p>
+          )}
+        </div>
+
+        {/* Quantidade */}
+        <div className="form-group">
+          <label className="form-label">Quantidade *</label>
+          <input type="number" min={1}
+            max={formRetirada.equipamento_id
+              ? (itens.find(i => String(i.id) === String(formRetirada.equipamento_id))?.quantidade_disponivel ?? 999)
+              : 999}
+            className="form-input"
+            value={formRetirada.quantidade}
+            onChange={e => setFormRetirada(f => ({ ...f, quantidade: parseInt(e.target.value) || 1 }))}
+          />
+          {formRetirada.equipamento_id && (() => {
+            const sel = itens.find(i => String(i.id) === String(formRetirada.equipamento_id));
+            return sel ? (
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+                Disponível: <strong style={{ color: '#4ADE80' }}>{sel.quantidade_disponivel}</strong> unidade(s)
+              </p>
+            ) : null;
+          })()}
+        </div>
+
+        {/* Observações */}
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">Observações <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(opcional)</span></label>
+          <input className="form-input" placeholder="Ex: empréstimo até 30/06, evento externo..."
+            value={formRetirada.observacoes}
+            onChange={e => setFormRetirada(f => ({ ...f, observacoes: e.target.value }))} />
+        </div>
+
+        <div className="modal-footer">
+          <motion.button className="btn btn-ghost" whileTap={{ scale: 0.97 }}
+            onClick={() => setModalRetirada(false)}>
+            Cancelar
+          </motion.button>
+          <motion.button
+            className="btn btn-primary"
+            onClick={confirmarRetirada}
+            disabled={submittingRetirada}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', boxShadow: submittingRetirada ? 'none' : '0 4px 14px rgba(239,68,68,0.3)' }}
+          >
+            {submittingRetirada ? 'Registrando...' : 'Confirmar Retirada'}
+          </motion.button>
+        </div>
+      </Modal>
     </PageTransition>
   );
 }

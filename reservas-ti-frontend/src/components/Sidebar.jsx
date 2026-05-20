@@ -51,6 +51,13 @@ const IconEstoque = () => (
     <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
   </svg>
 );
+const IconLogs = () => (
+  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+    <rect x="9" y="3" width="6" height="4" rx="1"/>
+    <line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/>
+  </svg>
+);
 // ─────────────────────────────────────────────────────────────────────────────
 const IconMenu = () => (
   <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -133,9 +140,10 @@ export default function Sidebar() {
     { to: '/perfil',       label: 'Meu Perfil',      icon: <IconUser /> },
     { to: '/suporte',      label: 'Suporte',         icon: <IconSuporte /> },
     ...(user?.admin ? [
-      { to: '/devolucoes', label: 'Devoluções',   icon: <IconReturn />,  badge: 'ADMIN' },
-      { to: '/estoque',    label: 'Estoque',       icon: <IconEstoque />, badge: 'ADMIN' },
-      { to: '/admin',      label: 'Painel Admin',  icon: <IconShield />,  badge: 'ADMIN', pendentes },
+      { to: '/devolucoes',    label: 'Devoluções',       icon: <IconReturn />,  badge: 'ADMIN' },
+      { to: '/estoque',       label: 'Estoque',          icon: <IconEstoque />, badge: 'ADMIN' },
+      { to: '/retiradas-log', label: 'Logs de Retirada', icon: <IconLogs />,    badge: 'ADMIN' },
+      { to: '/admin',         label: 'Painel Admin',     icon: <IconShield />,  badge: 'ADMIN', pendentes },
     ] : []),
   ];
 

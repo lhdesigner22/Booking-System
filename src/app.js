@@ -10,6 +10,7 @@ import reservasRoutes from './routes/reservas.js';
 import adminRoutes from './routes/admin.js';
 import devolucoesRoutes from './routes/devolucoes.js';
 import comentariosRoutes from './routes/comentarios.js';
+import retiradasRoutes from './routes/retiradas.js';
 import { authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { pool } from './config/database.js';
@@ -24,6 +25,29 @@ async function runMigrations() {
     console.log('✔ Migração FK comentarios_usuario_id aplicada');
   } catch (err) {
     console.error('Erro na migração FK:', err.message);
+  }
+
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS retiradas (
+        id               SERIAL PRIMARY KEY,
+        colaborador_nome  VARCHAR(255) NOT NULL,
+        colaborador_email VARCHAR(255) NOT NULL,
+        local_setor       VARCHAR(255) NOT NULL,
+        equipamento_id    INTEGER REFERENCES equipamentos(id) ON DELETE SET NULL,
+        equipamento_nome  VARCHAR(255) NOT NULL,
+        quantidade        INTEGER NOT NULL DEFAULT 1 CHECK (quantidade > 0),
+        responsavel_id    INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+        responsavel_nome  VARCHAR(255),
+        observacoes       TEXT,
+        criado_em         TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS retiradas_criado_em_idx ON retiradas (criado_em DESC);
+      CREATE INDEX IF NOT EXISTS retiradas_colaborador_idx ON retiradas (colaborador_nome);
+    `);
+    console.log('✔ Tabela retiradas criada/verificada');
+  } catch (err) {
+    console.error('Erro ao criar tabela retiradas:', err.message);
   }
 }
 
@@ -69,6 +93,7 @@ app.use('/api/equipamentos', equipamentosRoutes);
 app.use('/api/reservas',     reservasRoutes);
 app.use('/api/admin',        adminRoutes);
 app.use('/api/devolucoes',  devolucoesRoutes);
+app.use('/api/retiradas',   retiradasRoutes);
 app.use('/api/reservas/:id/comentarios', comentariosRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));

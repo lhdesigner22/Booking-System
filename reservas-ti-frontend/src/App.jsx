@@ -11,8 +11,9 @@ import Estoque      from './pages/estoque.jsx';
 import Suporte      from './pages/suporte.jsx';
 import ResetarSenha from './pages/resetar-senha.jsx';
 import Landing      from './pages/landing.jsx';
-import Dashboard    from './pages/dashboard.jsx';
-import NotFound     from './pages/notfound.jsx';
+import Dashboard     from './pages/dashboard.jsx';
+import NotFound      from './pages/notfound.jsx';
+import RetiradasLog  from './pages/retiradas-log.jsx';
 import { ToastProvider }            from './context/ToastContext.jsx';
 import { AuthProvider, useAuth }    from './context/AuthContext.jsx';
 
@@ -61,7 +62,8 @@ function AnimatedRoutes() {
         <Route path="/devolucoes"   element={<RotaAdmin><Devolucoes /></RotaAdmin>} />
         <Route path="/admin"        element={<RotaAdmin><Admin /></RotaAdmin>} />
         <Route path="/estoque"      element={<RotaAdmin><Estoque /></RotaAdmin>} />
-        <Route path="/dashboard"    element={<RotaProtegida><Dashboard /></RotaProtegida>} />
+        <Route path="/dashboard"      element={<RotaProtegida><Dashboard /></RotaProtegida>} />
+        <Route path="/retiradas-log" element={<RotaAdmin><RetiradasLog /></RotaAdmin>} />
         <Route path="/resetar-senha" element={<ResetarSenha />} />
         <Route path="/"             element={<RotaPublica><Landing /></RotaPublica>} />
         <Route path="/404"          element={<NotFound />} />
