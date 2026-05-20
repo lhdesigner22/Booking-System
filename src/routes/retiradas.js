@@ -77,9 +77,9 @@ router.post('/', adminMiddleware, async (req, res) => {
     const result = await client.query(
       `INSERT INTO retiradas
          (colaborador_nome, colaborador_email, local_setor,
-          equipamento_id, equipamento_nome, quantidade,
+          equipamento_id, equipamento_nome, numero_serie, quantidade,
           responsavel_id, responsavel_nome, observacoes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         colaborador_nome.trim(),
@@ -87,6 +87,7 @@ router.post('/', adminMiddleware, async (req, res) => {
         local_setor.trim(),
         equipamento_id,
         equip.nome,
+        equip.numero_serie || null,
         parseInt(quantidade, 10),
         req.userId,
         responsavel_nome,
@@ -204,6 +205,7 @@ router.get('/export', adminMiddleware, async (req, res) => {
          r.colaborador_email           AS "E-mail",
          r.local_setor                 AS "Local/Setor",
          r.equipamento_nome            AS "Item Retirado",
+         COALESCE(r.numero_serie, '')  AS "Nº Patrimônio",
          r.quantidade                  AS "Quantidade",
          TO_CHAR(r.criado_em AT TIME ZONE 'America/Sao_Paulo',
                  'DD/MM/YYYY HH24:MI') AS "Data e Hora",
@@ -217,7 +219,7 @@ router.get('/export', adminMiddleware, async (req, res) => {
 
     const COLS = [
       'Nome do Colaborador', 'E-mail', 'Local/Setor',
-      'Item Retirado', 'Quantidade', 'Data e Hora',
+      'Item Retirado', 'Nº Patrimônio', 'Quantidade', 'Data e Hora',
       'Responsável', 'Observações',
     ];
 

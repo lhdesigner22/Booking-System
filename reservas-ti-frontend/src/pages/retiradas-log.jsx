@@ -20,6 +20,7 @@ function exportCSV(retiradas) {
     { key: 'colaborador_email', label: 'E-mail' },
     { key: 'local_setor',       label: 'Local/Setor' },
     { key: 'equipamento_nome',  label: 'Item Retirado' },
+    { key: 'numero_serie',      label: 'Nº Patrimônio' },
     { key: 'quantidade',        label: 'Quantidade' },
     { key: 'criado_em',         label: 'Data e Hora' },
     { key: 'responsavel_nome',  label: 'Responsável' },
@@ -289,6 +290,7 @@ export default function RetiradasLog() {
                       <th>Colaborador</th>
                       <th>Local / Setor</th>
                       <th>Item Retirado</th>
+                      <th>Patrimônio</th>
                       <th style={{ textAlign: 'center' }}>Qtd</th>
                       <th>Data e Hora</th>
                       <th>Responsável</th>
@@ -329,6 +331,24 @@ export default function RetiradasLog() {
 
                           {/* Item */}
                           <td style={{ fontWeight: 500, fontSize: 13 }}>{r.equipamento_nome}</td>
+
+                          {/* Patrimônio */}
+                          <td>
+                            {r.numero_serie ? (
+                              <span style={{
+                                fontFamily: 'DM Mono, monospace',
+                                fontSize: 11, letterSpacing: 0.4,
+                                padding: '2px 8px', borderRadius: 6,
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid var(--border)',
+                                color: 'var(--text-secondary)',
+                              }}>
+                                {r.numero_serie}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
+                            )}
+                          </td>
 
                           {/* Quantidade */}
                           <td style={{ textAlign: 'center' }}>

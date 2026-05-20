@@ -36,6 +36,7 @@ async function runMigrations() {
         local_setor       VARCHAR(255) NOT NULL,
         equipamento_id    INTEGER REFERENCES equipamentos(id) ON DELETE SET NULL,
         equipamento_nome  VARCHAR(255) NOT NULL,
+        numero_serie      VARCHAR(255),
         quantidade        INTEGER NOT NULL DEFAULT 1 CHECK (quantidade > 0),
         responsavel_id    INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
         responsavel_nome  VARCHAR(255),
@@ -44,6 +45,7 @@ async function runMigrations() {
       );
       CREATE INDEX IF NOT EXISTS retiradas_criado_em_idx ON retiradas (criado_em DESC);
       CREATE INDEX IF NOT EXISTS retiradas_colaborador_idx ON retiradas (colaborador_nome);
+      ALTER TABLE retiradas ADD COLUMN IF NOT EXISTS numero_serie VARCHAR(255);
     `);
     console.log('✔ Tabela retiradas criada/verificada');
   } catch (err) {

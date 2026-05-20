@@ -566,6 +566,42 @@ export default function Estoque() {
           )}
         </div>
 
+        {/* Patrimônio — preenchido automaticamente */}
+        {(() => {
+          const sel = formRetirada.equipamento_id
+            ? itens.find(i => String(i.id) === String(formRetirada.equipamento_id))
+            : null;
+          return (
+            <div className="form-group">
+              <label className="form-label">
+                Nº Patrimônio / Série
+                {!sel?.numero_serie && (
+                  <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>(não cadastrado)</span>
+                )}
+              </label>
+              <div className="input-icon-wrap">
+                <svg className="input-icon" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/>
+                  <path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/>
+                </svg>
+                <input
+                  className="form-input"
+                  readOnly
+                  value={sel?.numero_serie || ''}
+                  placeholder={sel ? 'Sem nº de patrimônio cadastrado' : 'Selecione um item primeiro...'}
+                  style={{
+                    background: 'var(--input-bg, rgba(255,255,255,0.04))',
+                    opacity: sel?.numero_serie ? 1 : 0.5,
+                    cursor: 'default',
+                    fontFamily: sel?.numero_serie ? 'DM Mono, monospace' : 'inherit',
+                    letterSpacing: sel?.numero_serie ? 0.5 : 0,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Quantidade */}
         <div className="form-group">
           <label className="form-label">Quantidade *</label>
