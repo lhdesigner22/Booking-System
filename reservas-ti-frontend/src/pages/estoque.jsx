@@ -15,6 +15,7 @@ const EMPTY_RETIRADA = {
   colaborador_email: '',
   local_setor: '',
   equipamento_id: '',
+  numero_serie: '',
   quantidade: 1,
   observacoes: '',
 };
@@ -138,6 +139,7 @@ export default function Estoque() {
         colaborador_email: f.colaborador_email.trim(),
         local_setor:       f.local_setor.trim(),
         equipamento_id:    f.equipamento_id,
+        numero_serie:      f.numero_serie.trim() || null,
         quantidade:        parseInt(f.quantidade, 10),
         observacoes:       f.observacoes.trim() || null,
       });
@@ -383,7 +385,7 @@ export default function Estoque() {
                                     whileTap={{ scale: 0.95 }}
                                     title="Registrar retirada deste item"
                                     onClick={() => {
-                                      setFormRetirada({ ...EMPTY_RETIRADA, equipamento_id: String(item.id) });
+                                      setFormRetirada({ ...EMPTY_RETIRADA, equipamento_id: String(item.id), numero_serie: item.numero_serie || '' });
                                       setModalRetirada(true);
                                     }}
                                     style={{
@@ -547,7 +549,15 @@ export default function Estoque() {
           <label className="form-label">Item retirado *</label>
           <select className="form-input"
             value={formRetirada.equipamento_id}
-            onChange={e => setFormRetirada(f => ({ ...f, equipamento_id: e.target.value, quantidade: 1 }))}
+            onChange={e => {
+              const selItem = itens.find(i => String(i.id) === e.target.value);
+              setFormRetirada(f => ({
+                ...f,
+                equipamento_id: e.target.value,
+                quantidade: 1,
+                numero_serie: selItem?.numero_serie || '',
+              }));
+            }}
           >
             <option value="">Selecione o equipamento...</option>
             {itens
@@ -566,41 +576,26 @@ export default function Estoque() {
           )}
         </div>
 
-        {/* Patrimônio — preenchido automaticamente */}
-        {(() => {
-          const sel = formRetirada.equipamento_id
-            ? itens.find(i => String(i.id) === String(formRetirada.equipamento_id))
-            : null;
-          return (
-            <div className="form-group">
-              <label className="form-label">
-                Nº Patrimônio / Série
-                {!sel?.numero_serie && (
-                  <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>(não cadastrado)</span>
-                )}
-              </label>
-              <div className="input-icon-wrap">
-                <svg className="input-icon" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <rect x="2" y="7" width="20" height="14" rx="2"/>
-                  <path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/>
-                </svg>
-                <input
-                  className="form-input"
-                  readOnly
-                  value={sel?.numero_serie || ''}
-                  placeholder={sel ? 'Sem nº de patrimônio cadastrado' : 'Selecione um item primeiro...'}
-                  style={{
-                    background: 'var(--input-bg, rgba(255,255,255,0.04))',
-                    opacity: sel?.numero_serie ? 1 : 0.5,
-                    cursor: 'default',
-                    fontFamily: sel?.numero_serie ? 'DM Mono, monospace' : 'inherit',
-                    letterSpacing: sel?.numero_serie ? 0.5 : 0,
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })()}
+        {/* Patrimônio */}
+        <div className="form-group">
+          <label className="form-label">
+            Nº Patrimônio / Série
+            <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>(opcional)</span>
+          </label>
+          <div className="input-icon-wrap">
+            <svg className="input-icon" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <rect x="2" y="7" width="20" height="14" rx="2"/>
+              <path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/>
+            </svg>
+            <input
+              className="form-input"
+              placeholder="Ex: SN-20240001"
+              value={formRetirada.numero_serie}
+              onChange={e => setFormRetirada(f => ({ ...f, numero_serie: e.target.value }))}
+              style={{ fontFamily: formRetirada.numero_serie ? 'DM Mono, monospace' : 'inherit' }}
+            />
+          </div>
+        </div>
 
         {/* Quantidade */}
         <div className="form-group">

@@ -12,6 +12,7 @@ router.post('/', adminMiddleware, async (req, res) => {
     colaborador_email,
     local_setor,
     equipamento_id,
+    numero_serie,
     quantidade,
     observacoes,
   } = req.body;
@@ -87,7 +88,7 @@ router.post('/', adminMiddleware, async (req, res) => {
         local_setor.trim(),
         equipamento_id,
         equip.nome,
-        equip.numero_serie || null,
+        numero_serie?.trim() || equip.numero_serie || null,
         parseInt(quantidade, 10),
         req.userId,
         responsavel_nome,
