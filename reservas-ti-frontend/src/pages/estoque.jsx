@@ -368,6 +368,29 @@ export default function Estoque() {
                                   onClick={() => excluir(item)}>
                                   Remover
                                 </motion.button>
+                                {!esgotado && (
+                                  <motion.button
+                                    className="btn btn-sm"
+                                    whileTap={{ scale: 0.95 }}
+                                    title="Registrar retirada deste item"
+                                    onClick={() => {
+                                      setFormRetirada({ ...EMPTY_RETIRADA, equipamento_id: String(item.id) });
+                                      setModalRetirada(true);
+                                    }}
+                                    style={{
+                                      background: 'rgba(248,113,113,0.1)',
+                                      border: '1px solid rgba(248,113,113,0.3)',
+                                      color: '#F87171',
+                                      gap: 5,
+                                    }}
+                                  >
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                      <path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+                                      <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+                                    </svg>
+                                    Retirar
+                                  </motion.button>
+                                )}
                               </div>
                             </td>
                           </motion.tr>
