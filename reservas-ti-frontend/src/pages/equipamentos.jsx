@@ -78,17 +78,26 @@ export default function Equipamentos() {
     new Set(equipamentos.map(e => e.categoria || e.tipo).filter(Boolean))
   ).sort()];
 
-  const filtrados = equipamentos.filter(eq => {
-    const passaBusca = eq.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      (eq.descricao || '').toLowerCase().includes(busca.toLowerCase());
-    const estaDisponivel = eq.disponivel && eq.quantidade_disponivel > 0;
-    const passaDisp =
-      filtroDisp === 'todos' ? true :
-      filtroDisp === 'disponivel' ? estaDisponivel : !estaDisponivel;
-    const catEq = eq.categoria || eq.tipo || null;
-    const passaCategoria = filtroCategoria === 'todas' ? true : catEq === filtroCategoria;
-    return passaBusca && passaDisp && passaCategoria;
-  });
+  const filtrados = equipamentos
+    .filter(eq => {
+      const passaBusca = eq.nome.toLowerCase().includes(busca.toLowerCase()) ||
+        (eq.descricao || '').toLowerCase().includes(busca.toLowerCase());
+      const estaDisponivel = eq.disponivel && eq.quantidade_disponivel > 0;
+      const passaDisp =
+        filtroDisp === 'todos' ? true :
+        filtroDisp === 'disponivel' ? estaDisponivel : !estaDisponivel;
+      const catEq = eq.categoria || eq.tipo || null;
+      const passaCategoria = filtroCategoria === 'todas' ? true : catEq === filtroCategoria;
+      return passaBusca && passaDisp && passaCategoria;
+    })
+    .sort((a, b) => {
+      // Disponíveis sempre antes dos indisponíveis
+      const dispA = a.disponivel && a.quantidade_disponivel > 0 ? 0 : 1;
+      const dispB = b.disponivel && b.quantidade_disponivel > 0 ? 0 : 1;
+      if (dispA !== dispB) return dispA - dispB;
+      // Dentro do mesmo grupo, ordem alfabética
+      return a.nome.localeCompare(b.nome, 'pt-BR');
+    });
 
   return (
     <PageTransition>
