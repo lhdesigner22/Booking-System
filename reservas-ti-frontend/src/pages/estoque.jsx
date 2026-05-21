@@ -119,6 +119,24 @@ export default function Estoque() {
     }
   }
 
+  async function toggleDisponivel(item) {
+    try {
+      await api.put(`/equipamentos/${item.id}`, { disponivel: !item.disponivel });
+      // Atualiza localmente sem recarregar tudo
+      setItens(prev => prev.map(i =>
+        i.id === item.id ? { ...i, disponivel: !item.disponivel } : i
+      ));
+      toast({
+        message: !item.disponivel
+          ? `"${item.nome}" habilitado para reservas`
+          : `"${item.nome}" desabilitado para reservas`,
+        type: !item.disponivel ? 'success' : 'info',
+      });
+    } catch {
+      toast({ message: 'Erro ao atualizar disponibilidade', type: 'error' });
+    }
+  }
+
   function abrirRetirada() {
     setFormRetirada(EMPTY_RETIRADA);
     setModalRetirada(true);
@@ -365,9 +383,20 @@ export default function Estoque() {
                               <StockBar total={item.quantidade_total} emUso={item.quantidade_em_uso || 0} />
                             </td>
                             <td>
-                              <span className={`badge badge-${esgotado ? 'indisponivel' : 'disponivel'}`}>
-                                {esgotado ? '● Esgotado' : '● Disponível'}
-                              </span>
+                              {!item.disponivel ? (
+                                <span style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                                  padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 600,
+                                  background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)',
+                                  color: '#FCD34D',
+                                }}>
+                                  ● Reservas off
+                                </span>
+                              ) : (
+                                <span className={`badge badge-${esgotado ? 'indisponivel' : 'disponivel'}`}>
+                                  {esgotado ? '● Esgotado' : '● Disponível'}
+                                </span>
+                              )}
                             </td>
                             <td>
                               <div className="actions">
@@ -375,6 +404,39 @@ export default function Estoque() {
                                   onClick={() => abrirEditar(item)}>
                                   Editar
                                 </motion.button>
+
+                                {/* Toggle habilitar/desabilitar reservas */}
+                                <motion.button
+                                  className="btn btn-sm"
+                                  whileTap={{ scale: 0.95 }}
+                                  title={item.disponivel ? 'Desabilitar reservas' : 'Habilitar reservas'}
+                                  onClick={() => toggleDisponivel(item)}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 5,
+                                    background: item.disponivel
+                                      ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.05)',
+                                    border: `1px solid ${item.disponivel
+                                      ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.15)'}`,
+                                    color: item.disponivel ? '#4ADE80' : 'var(--text-muted)',
+                                  }}
+                                >
+                                  {item.disponivel ? (
+                                    <>
+                                      <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.3" viewBox="0 0 24 24">
+                                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+                                      </svg>
+                                      Ativo
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.3" viewBox="0 0 24 24">
+                                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+                                      </svg>
+                                      Inativo
+                                    </>
+                                  )}
+                                </motion.button>
+
                                 <motion.button className="btn btn-danger btn-sm" whileTap={{ scale: 0.95 }}
                                   onClick={() => excluir(item)}>
                                   Remover
