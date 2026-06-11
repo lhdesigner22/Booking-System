@@ -55,8 +55,12 @@ function wrapEmail({ titulo, subtitulo, badgeTexto, badgeCor, linhas, mensagemEx
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
 
-        <tr><td style="background:#1E293B;border-radius:12px 12px 0 0;padding:28px 32px;border-bottom:2px solid #22C55E">
-          <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <tr><td style="background:#1E293B;border-radius:12px 12px 0 0;padding:24px 32px;border-bottom:2px solid #22C55E">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="padding-bottom:16px">
+              <img src="${FRONTEND_URL}/logo.png" alt="Booking System" width="64" height="64" style="display:block;border-radius:12px">
+            </td></tr>
+            <tr>
             <td>
               <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:1px;color:#22C55E;text-transform:uppercase">Booking System</p>
               <h1 style="margin:0;font-size:22px;font-weight:700;color:#F1F5F9">${titulo}</h1>
