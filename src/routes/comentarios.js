@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../config/database.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { notificarNovaMensagemChat } from '../services/emailService.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -61,13 +62,46 @@ router.post('/', authMiddleware, async (req, res) => {
       'SELECT id, nome, admin FROM usuarios WHERE id = $1',
       [req.userId]
     );
+    const remetente = user.rows[0];
 
     res.status(201).json({
       ...result.rows[0],
-      usuario_id:    user.rows[0].id,
-      usuario_nome:  user.rows[0].nome,
-      usuario_admin: user.rows[0].admin,
+      usuario_id:    remetente.id,
+      usuario_nome:  remetente.nome,
+      usuario_admin: remetente.admin,
     });
+
+    // Notifica o(s) destinatário(s) por e-mail (fire-and-forget)
+    const reservaInfo = await pool.query(
+      `SELECT r.usuario_id, u.nome AS usuario_nome, u.email AS usuario_email,
+              e.nome AS equipamento_nome
+       FROM reservas r
+       JOIN usuarios    u ON u.id = r.usuario_id
+       JOIN equipamentos e ON e.id = r.equipamento_id
+       WHERE r.id = $1`,
+      [reservaId]
+    );
+    if (reservaInfo.rows.length > 0) {
+      const rv = reservaInfo.rows[0];
+      let destinatarios;
+      if (remetente.admin) {
+        // Admin enviou → notifica o dono da reserva
+        destinatarios = [{ nome: rv.usuario_nome, email: rv.usuario_email, isAdmin: false }];
+      } else {
+        // Usuário enviou → notifica todos os admins
+        const admins = await pool.query(
+          "SELECT nome, email FROM usuarios WHERE admin = true AND email IS NOT NULL"
+        );
+        destinatarios = admins.rows.map(a => ({ nome: a.nome, email: a.email, isAdmin: true }));
+      }
+      notificarNovaMensagemChat({
+        reservaId,
+        equipamento:   rv.equipamento_nome,
+        remetente:     remetente.nome,
+        mensagem:      mensagem.trim(),
+        destinatarios,
+      });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -3,6 +3,7 @@ setDefaultResultOrder('ipv4first'); // Evita ENETUNREACH em hosts sem IPv6 (ex.:
 
 import express from 'express';
 import dotenv from 'dotenv';
+import cron from 'node-cron';
 import authRoutes from './routes/auth.js';
 import usuariosRoutes from './routes/usuarios.js';
 import equipamentosRoutes from './routes/equipamentos.js';
@@ -112,5 +113,14 @@ runMigrations().then(() => {
     console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
   });
 });
+
+// ── Cron jobs de e-mail (todo dia às 08:00 horário de Brasília) ──────────────
+import { enviarLembretesDevoucao, enviarAlertasAtraso } from './services/emailService.js';
+
+cron.schedule('0 8 * * *', async () => {
+  console.log('[Cron] Rodando jobs de e-mail...');
+  await enviarLembretesDevoucao();
+  await enviarAlertasAtraso();
+}, { timezone: 'America/Sao_Paulo' });
 
 export default app;

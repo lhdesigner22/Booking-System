@@ -1,37 +1,45 @@
 import { pool } from '../config/database.js';
 
-// ── Busca e-mails de todos os admins ──────────────────────────────────────────
-async function emailsDosAdmins() {
-  const result = await pool.query(
-    "SELECT email FROM usuarios WHERE admin = true AND email IS NOT NULL"
-  );
-  return result.rows.map(r => r.email);
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://booking-reservas-ti.vercel.app';
+const FROM         = process.env.EMAIL_FROM    || 'Booking System <onboarding@resend.dev>';
+
+// ── Utilitários ───────────────────────────────────────────────────────────────
+function fmt(d) {
+  return new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
-// ── Template HTML ─────────────────────────────────────────────────────────────
-function templateNovaReserva({ reserva, equipamento, usuario }) {
-  const fmt = (d) =>
-    new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+async function emailsDosAdmins() {
+  const r = await pool.query("SELECT email FROM usuarios WHERE admin = true AND email IS NOT NULL");
+  return r.rows.map(r => r.email);
+}
 
-  const linhas = [
-    ['Equipamento',  equipamento],
-    ['Quantidade',   reserva.quantidade ?? 1],
-    ['Início',       fmt(reserva.data_inicio)],
-    ['Término',      fmt(reserva.data_fim)],
-    ['Local de uso', reserva.local_uso || '—'],
-    ['Solicitante',  usuario.nome],
-    ['E-mail',       usuario.email],
-    ['Setor/Curso',  usuario.setor || '—'],
-    ['ID da reserva',`#${reserva.id}`],
-  ].map(([k, v]) => `
+async function enviar({ to, subject, html }) {
+  if (!process.env.RESEND_API_KEY) {
+    console.log('[Email] RESEND_API_KEY não configurada — notificação ignorada.');
+    return;
+  }
+  const lista = Array.isArray(to) ? to : [to];
+  if (lista.length === 0) return;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: FROM, to: lista, subject, html }),
+  });
+
+  if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
+}
+
+// ── Templates base ────────────────────────────────────────────────────────────
+function wrapEmail({ titulo, subtitulo, badgeTexto, badgeCor, linhas, mensagemExtra, btnUrl, btnTexto }) {
+  const linhasHtml = linhas.map(([k, v]) => `
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #2D3748;color:#94A3B8;font-size:13px;white-space:nowrap">${k}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #2D3748;color:#F1F5F9;font-size:13px;font-weight:500">${v}</td>
     </tr>`).join('');
-
-  const adminUrl = process.env.FRONTEND_URL
-    ? `${process.env.FRONTEND_URL}/admin`
-    : 'https://booking-reservas-ti.vercel.app/admin';
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -41,43 +49,34 @@ function templateNovaReserva({ reserva, equipamento, usuario }) {
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
 
-        <!-- Header -->
         <tr><td style="background:#1E293B;border-radius:12px 12px 0 0;padding:28px 32px;border-bottom:2px solid #22C55E">
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td>
-                <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:1px;color:#22C55E;text-transform:uppercase">Booking System</p>
-                <h1 style="margin:0;font-size:22px;font-weight:700;color:#F1F5F9">📋 Nova Reserva Registrada</h1>
-              </td>
-              <td align="right">
-                <span style="display:inline-block;padding:5px 14px;border-radius:20px;background:rgba(245,158,11,0.15);color:#FCD34D;font-size:12px;font-weight:700;border:1px solid rgba(245,158,11,0.35)">PENDENTE</span>
-              </td>
-            </tr>
-          </table>
+          <table width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td>
+              <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:1px;color:#22C55E;text-transform:uppercase">Booking System</p>
+              <h1 style="margin:0;font-size:22px;font-weight:700;color:#F1F5F9">${titulo}</h1>
+              ${subtitulo ? `<p style="margin:6px 0 0;font-size:13px;color:#94A3B8">${subtitulo}</p>` : ''}
+            </td>
+            ${badgeTexto ? `<td align="right"><span style="display:inline-block;padding:5px 14px;border-radius:20px;background:${badgeCor}22;color:${badgeCor};font-size:12px;font-weight:700;border:1px solid ${badgeCor}55">${badgeTexto}</span></td>` : ''}
+          </tr></table>
         </td></tr>
 
-        <!-- Body -->
         <tr><td style="background:#1E293B;padding:24px 32px">
-          <p style="margin:0 0 20px;font-size:14px;color:#94A3B8;line-height:1.6">
-            Uma nova solicitação de reserva foi criada e está <strong style="color:#FCD34D">aguardando aprovação</strong>.
-            Acesse o painel para aprovar ou recusar.
-          </p>
+          ${mensagemExtra ? `<p style="margin:0 0 20px;font-size:14px;color:#94A3B8;line-height:1.6">${mensagemExtra}</p>` : ''}
 
+          ${linhas.length > 0 ? `
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#0F172A;border-radius:10px;overflow:hidden;margin-bottom:24px">
-            ${linhas}
-          </table>
+            ${linhasHtml}
+          </table>` : ''}
 
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="center">
-              <a href="${adminUrl}"
-                 style="display:inline-block;padding:13px 32px;background:#22C55E;color:#0F172A;text-decoration:none;font-weight:700;font-size:14px;border-radius:10px;letter-spacing:0.3px">
-                Abrir Painel Admin →
+              <a href="${btnUrl}" style="display:inline-block;padding:13px 32px;background:#22C55E;color:#0F172A;text-decoration:none;font-weight:700;font-size:14px;border-radius:10px;letter-spacing:0.3px">
+                ${btnTexto} →
               </a>
             </td></tr>
           </table>
         </td></tr>
 
-        <!-- Footer -->
         <tr><td style="background:#162032;border-radius:0 0 12px 12px;padding:16px 32px;border-top:1px solid #2D3748">
           <p style="margin:0;font-size:11px;color:#475569;text-align:center">
             Este e-mail foi enviado automaticamente pelo Booking System · Colégio Ser<br>
@@ -88,170 +87,190 @@ function templateNovaReserva({ reserva, equipamento, usuario }) {
       </table>
     </td></tr>
   </table>
-</body>
-</html>`;
-}
-
-// ── Template: reset de senha ──────────────────────────────────────────────────
-function templateResetSenha({ nome, resetUrl }) {
-  return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0F172A;padding:40px 16px">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
-        <tr><td style="background:#1E293B;border-radius:12px 12px 0 0;padding:28px 32px;border-bottom:2px solid #22C55E">
-          <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:1px;color:#22C55E;text-transform:uppercase">Booking System</p>
-          <h1 style="margin:0;font-size:22px;font-weight:700;color:#F1F5F9">🔑 Redefinição de Senha</h1>
-        </td></tr>
-        <tr><td style="background:#1E293B;padding:28px 32px">
-          <p style="margin:0 0 16px;font-size:14px;color:#94A3B8;line-height:1.6">Olá, <strong style="color:#F1F5F9">${nome}</strong>!</p>
-          <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;line-height:1.6">
-            Recebemos uma solicitação para redefinir a senha da sua conta.<br>
-            Clique no botão abaixo para criar uma nova senha. O link expira em <strong style="color:#FCD34D">1 hora</strong>.
-          </p>
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr><td align="center">
-              <a href="${resetUrl}" style="display:inline-block;padding:13px 32px;background:#22C55E;color:#0F172A;text-decoration:none;font-weight:700;font-size:14px;border-radius:10px;letter-spacing:0.3px">
-                Redefinir Senha →
-              </a>
-            </td></tr>
-          </table>
-          <p style="margin:24px 0 0;font-size:12px;color:#475569;text-align:center">
-            Se você não solicitou a redefinição, ignore este e-mail. Sua senha não será alterada.
-          </p>
-        </td></tr>
-        <tr><td style="background:#162032;border-radius:0 0 12px 12px;padding:16px 32px;border-top:1px solid #2D3748">
-          <p style="margin:0;font-size:11px;color:#475569;text-align:center">
-            Este e-mail foi enviado automaticamente pelo Booking System · Colégio Ser
-          </p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-}
-
-// ── Template: status da reserva ───────────────────────────────────────────────
-function templateStatusReserva({ nome, equipamento, status, data_inicio, data_fim, adminUrl }) {
-  const fmt = (d) => new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-  const isAprovada = status === 'aprovada';
-  const cor    = isAprovada ? '#22C55E' : '#EF4444';
-  const titulo = isAprovada ? '✅ Reserva Aprovada!' : '❌ Reserva Recusada';
-  const texto  = isAprovada
-    ? `Sua reserva de <strong style="color:#F1F5F9">${equipamento}</strong> foi <strong style="color:#22C55E">aprovada</strong>! O equipamento estará disponível para retirada no período solicitado.`
-    : `Sua reserva de <strong style="color:#F1F5F9">${equipamento}</strong> foi <strong style="color:#EF4444">recusada</strong>. Entre em contato com a equipe de TI para mais informações.`;
-  return `<!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0F172A;padding:40px 16px">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
-        <tr><td style="background:#1E293B;border-radius:12px 12px 0 0;padding:28px 32px;border-bottom:2px solid ${cor}">
-          <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:1px;color:${cor};text-transform:uppercase">Booking System</p>
-          <h1 style="margin:0;font-size:22px;font-weight:700;color:#F1F5F9">${titulo}</h1>
-        </td></tr>
-        <tr><td style="background:#1E293B;padding:28px 32px">
-          <p style="margin:0 0 16px;font-size:14px;color:#94A3B8">Olá, <strong style="color:#F1F5F9">${nome}</strong>!</p>
-          <p style="margin:0 0 24px;font-size:14px;color:#94A3B8;line-height:1.6">${texto}</p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#0F172A;border-radius:10px;overflow:hidden;margin-bottom:24px">
-            <tr><td style="padding:8px 12px;border-bottom:1px solid #2D3748;color:#94A3B8;font-size:13px">Equipamento</td><td style="padding:8px 12px;border-bottom:1px solid #2D3748;color:#F1F5F9;font-size:13px;font-weight:500">${equipamento}</td></tr>
-            <tr><td style="padding:8px 12px;border-bottom:1px solid #2D3748;color:#94A3B8;font-size:13px">Início</td><td style="padding:8px 12px;border-bottom:1px solid #2D3748;color:#F1F5F9;font-size:13px">${fmt(data_inicio)}</td></tr>
-            <tr><td style="padding:8px 12px;color:#94A3B8;font-size:13px">Término</td><td style="padding:8px 12px;color:#F1F5F9;font-size:13px">${fmt(data_fim)}</td></tr>
-          </table>
-          ${isAprovada ? `<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center"><a href="${adminUrl}" style="display:inline-block;padding:13px 32px;background:${cor};color:#0F172A;text-decoration:none;font-weight:700;font-size:14px;border-radius:10px">Ver Minhas Reservas →</a></td></tr></table>` : ''}
-        </td></tr>
-        <tr><td style="background:#162032;border-radius:0 0 12px 12px;padding:16px 32px;border-top:1px solid #2D3748">
-          <p style="margin:0;font-size:11px;color:#475569;text-align:center">Booking System · Colégio Ser — e-mail automático, não responda.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
 </body></html>`;
 }
 
-export async function notificarUsuarioStatusReserva({ nome, email, equipamento, status, data_inicio, data_fim }) {
-  if (!process.env.RESEND_API_KEY) return;
-  if (status !== 'aprovada' && status !== 'recusada') return;
-  try {
-    const frontendUrl = process.env.FRONTEND_URL || 'https://booking-reservas-ti.vercel.app';
-    const from = process.env.EMAIL_FROM || 'Booking System <onboarding@resend.dev>';
-    const subject = status === 'aprovada'
-      ? `✅ Reserva aprovada: ${equipamento}`
-      : `❌ Reserva recusada: ${equipamento}`;
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: [email], subject, html: templateStatusReserva({ nome, equipamento, status, data_inicio, data_fim, adminUrl: `${frontendUrl}/reservas` }) }),
-    });
-    if (!response.ok) throw new Error(`Resend ${response.status}`);
-    console.log(`[Email] Status "${status}" enviado para: ${email}`);
-  } catch (err) {
-    console.error('[Email] Falha ao notificar status:', err.message);
-  }
-}
-
-export async function enviarEmailResetSenha({ nome, email, resetUrl }) {
-  if (!process.env.RESEND_API_KEY) {
-    console.log('[Email] RESEND_API_KEY não configurada — reset ignorado.');
-    return;
-  }
-  try {
-    const from = process.env.EMAIL_FROM || 'Booking System <onboarding@resend.dev>';
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: [email], subject: '🔑 Redefinição de senha — Booking System', html: templateResetSenha({ nome, resetUrl }) }),
-    });
-    if (!response.ok) throw new Error(`Resend ${response.status}`);
-    console.log(`[Email] Reset de senha enviado para: ${email}`);
-  } catch (err) {
-    console.error('[Email] Falha ao enviar reset:', err.message);
-  }
-}
-
-// ── Função principal exportada ────────────────────────────────────────────────
+// ── 1. Nova reserva → admins ──────────────────────────────────────────────────
 export async function notificarAdminsNovaReserva({ reserva, equipamento, usuario }) {
-  if (!process.env.RESEND_API_KEY) {
-    console.log('[Email] RESEND_API_KEY não configurada — notificação ignorada.');
-    return;
-  }
-
   try {
     const admins = await emailsDosAdmins();
-    if (admins.length === 0) {
-      console.log('[Email] Nenhum admin com e-mail encontrado.');
-      return;
-    }
-
-    const html = templateNovaReserva({ reserva, equipamento, usuario });
-
-    const from = process.env.EMAIL_FROM || 'Booking System <onboarding@resend.dev>';
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from,
-        to: admins,
-        subject: `📋 Nova reserva: ${equipamento} — ${usuario.nome}`,
-        html,
+    await enviar({
+      to: admins,
+      subject: `📋 Nova reserva: ${equipamento} — ${usuario.nome}`,
+      html: wrapEmail({
+        titulo:        '📋 Nova Reserva Registrada',
+        badgeTexto:    'PENDENTE',
+        badgeCor:      '#FCD34D',
+        mensagemExtra: 'Uma nova solicitação de reserva foi criada e está <strong style="color:#FCD34D">aguardando aprovação</strong>. Acesse o painel para aprovar ou recusar.',
+        linhas: [
+          ['Equipamento',   equipamento],
+          ['Quantidade',    reserva.quantidade ?? 1],
+          ['Início',        fmt(reserva.data_inicio)],
+          ['Término',       fmt(reserva.data_fim)],
+          ['Local de uso',  reserva.local_uso || '—'],
+          ['Solicitante',   usuario.nome],
+          ['E-mail',        usuario.email],
+          ['Setor/Curso',   usuario.setor || '—'],
+          ['ID da reserva', `#${reserva.id}`],
+        ],
+        btnUrl:  `${FRONTEND_URL}/admin`,
+        btnTexto: 'Abrir Painel Admin',
       }),
     });
-
-    if (!response.ok) {
-      const erro = await response.text();
-      throw new Error(`Resend API ${response.status}: ${erro}`);
-    }
-
-    console.log(`[Email] Notificação enviada para: ${admins.join(', ')}`);
+    console.log(`[Email] Nova reserva notificada para admins`);
   } catch (err) {
-    // Erro de e-mail nunca deve quebrar a reserva
-    console.error('[Email] Falha ao enviar notificação:', err.message);
+    console.error('[Email] notificarAdminsNovaReserva:', err.message);
+  }
+}
+
+// ── 2. Status atualizado → usuário ───────────────────────────────────────────
+export async function notificarUsuarioStatusReserva({ nome, email, equipamento, status, data_inicio, data_fim }) {
+  if (!email) return;
+  const aprovada = status === 'aprovada';
+  const recusada = status === 'recusada';
+  if (!aprovada && !recusada) return;
+
+  try {
+    await enviar({
+      to: [email],
+      subject: aprovada
+        ? `✅ Reserva aprovada: ${equipamento}`
+        : `❌ Reserva recusada: ${equipamento}`,
+      html: wrapEmail({
+        titulo:        aprovada ? '✅ Reserva Aprovada!' : '❌ Reserva Recusada',
+        subtitulo:     `Olá, ${nome}`,
+        badgeTexto:    aprovada ? 'APROVADA' : 'RECUSADA',
+        badgeCor:      aprovada ? '#4ADE80' : '#F87171',
+        mensagemExtra: aprovada
+          ? `Sua reserva foi <strong style="color:#4ADE80">aprovada</strong>. Retire o equipamento no horário combinado e lembre-se de devolvê-lo até o prazo.`
+          : `Infelizmente sua reserva foi <strong style="color:#F87171">recusada</strong>. Entre em contato com a equipe de TI para mais informações.`,
+        linhas: [
+          ['Equipamento', equipamento],
+          ['Início',      fmt(data_inicio)],
+          ['Término',     fmt(data_fim)],
+        ],
+        btnUrl:  `${FRONTEND_URL}/reservas`,
+        btnTexto: 'Ver Minhas Reservas',
+      }),
+    });
+    console.log(`[Email] Status ${status} notificado para ${email}`);
+  } catch (err) {
+    console.error('[Email] notificarUsuarioStatusReserva:', err.message);
+  }
+}
+
+// ── 3. Nova mensagem no chat ──────────────────────────────────────────────────
+export async function notificarNovaMensagemChat({ reservaId, equipamento, remetente, mensagem, destinatarios }) {
+  // destinatarios: [{ nome, email }]
+  const lista = destinatarios.filter(d => d.email);
+  if (lista.length === 0) return;
+
+  try {
+    await enviar({
+      to: lista.map(d => d.email),
+      subject: `💬 Nova mensagem na reserva: ${equipamento}`,
+      html: wrapEmail({
+        titulo:        '💬 Nova Mensagem no Chat',
+        subtitulo:     `Reserva #${reservaId} — ${equipamento}`,
+        mensagemExtra: `<strong style="color:#F1F5F9">${remetente}</strong> enviou uma mensagem na reserva:<br><br>
+          <div style="background:#0F172A;border-left:3px solid #22C55E;border-radius:4px;padding:12px 16px;font-size:14px;color:#CBD5E1;font-style:italic">
+            "${mensagem.length > 200 ? mensagem.slice(0, 200) + '…' : mensagem}"
+          </div>`,
+        linhas: [],
+        btnUrl:  lista.some(d => d.isAdmin) ? `${FRONTEND_URL}/admin` : `${FRONTEND_URL}/reservas`,
+        btnTexto: 'Visualizar',
+      }),
+    });
+    console.log(`[Email] Mensagem do chat notificada — reserva #${reservaId}`);
+  } catch (err) {
+    console.error('[Email] notificarNovaMensagemChat:', err.message);
+  }
+}
+
+// ── 4. Lembrete de devolução (cron diário) ────────────────────────────────────
+export async function enviarLembretesDevoucao() {
+  try {
+    const result = await pool.query(`
+      SELECT r.id, r.data_fim, r.local_uso,
+             u.nome AS usuario_nome, u.email AS usuario_email,
+             e.nome AS equipamento_nome
+      FROM reservas r
+      JOIN usuarios  u ON u.id = r.usuario_id
+      JOIN equipamentos e ON e.id = r.equipamento_id
+      WHERE r.status = 'aprovada'
+        AND r.data_fim BETWEEN NOW() AND NOW() + INTERVAL '25 hours'
+    `);
+
+    for (const r of result.rows) {
+      if (!r.usuario_email) continue;
+      await enviar({
+        to: [r.usuario_email],
+        subject: `⏰ Lembrete: devolução de "${r.equipamento_nome}" se aproxima`,
+        html: wrapEmail({
+          titulo:        '⏰ Lembrete de Devolução',
+          subtitulo:     `Olá, ${r.usuario_nome}`,
+          badgeTexto:    'ATENÇÃO',
+          badgeCor:      '#FCD34D',
+          mensagemExtra: `O prazo de devolução do equipamento abaixo está se aproximando. Por favor, devolva-o até a data e hora indicadas.`,
+          linhas: [
+            ['Equipamento',   r.equipamento_nome],
+            ['Devolver até',  fmt(r.data_fim)],
+            ['Local de uso',  r.local_uso || '—'],
+            ['ID da reserva', `#${r.id}`],
+          ],
+          btnUrl:  `${FRONTEND_URL}/reservas`,
+          btnTexto: 'Ver Minhas Reservas',
+        }),
+      });
+      console.log(`[Email] Lembrete enviado para ${r.usuario_email} — reserva #${r.id}`);
+    }
+  } catch (err) {
+    console.error('[Email] enviarLembretesDevoucao:', err.message);
+  }
+}
+
+// ── 5. Alertas de atraso → admins (cron diário) ───────────────────────────────
+export async function enviarAlertasAtraso() {
+  try {
+    const result = await pool.query(`
+      SELECT r.id, r.data_fim, r.local_uso,
+             u.nome AS usuario_nome, u.email AS usuario_email,
+             e.nome AS equipamento_nome
+      FROM reservas r
+      JOIN usuarios  u ON u.id = r.usuario_id
+      JOIN equipamentos e ON e.id = r.equipamento_id
+      WHERE r.status = 'aprovada'
+        AND r.data_fim < NOW()
+      ORDER BY r.data_fim ASC
+    `);
+
+    if (result.rows.length === 0) return;
+
+    const admins = await emailsDosAdmins();
+    if (admins.length === 0) return;
+
+    const linhas = result.rows.flatMap(r => [
+      ['Equipamento',    r.equipamento_nome],
+      ['Usuário',        `${r.usuario_nome} &lt;${r.usuario_email}&gt;`],
+      ['Prazo vencido',  fmt(r.data_fim)],
+      ['ID da reserva',  `#${r.id}`],
+    ]);
+
+    await enviar({
+      to: admins,
+      subject: `🚨 ${result.rows.length} reserva(s) em atraso`,
+      html: wrapEmail({
+        titulo:        '🚨 Reservas em Atraso',
+        badgeTexto:    `${result.rows.length} ATRASO(S)`,
+        badgeCor:      '#F87171',
+        mensagemExtra: `As reservas abaixo estão com prazo de devolução vencido. Por favor, entre em contato com os usuários.`,
+        linhas,
+        btnUrl:  `${FRONTEND_URL}/admin`,
+        btnTexto: 'Abrir Painel Admin',
+      }),
+    });
+    console.log(`[Email] Alerta de atraso enviado — ${result.rows.length} reserva(s)`);
+  } catch (err) {
+    console.error('[Email] enviarAlertasAtraso:', err.message);
   }
 }
