@@ -1,7 +1,8 @@
 import { pool } from '../config/database.js';
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://booking-reservas-ti.vercel.app';
-const FROM         = process.env.EMAIL_FROM    || 'Booking System <onboarding@resend.dev>';
+const FRONTEND_URL   = process.env.FRONTEND_URL  || 'https://booking-reservas-ti.vercel.app';
+const SENDER_NAME    = process.env.EMAIL_FROM_NAME  || 'Booking System';
+const SENDER_EMAIL   = process.env.EMAIL_FROM_ADDR  || 'luiz.sanchez@colegioser.com';
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
 function fmt(d) {
@@ -14,23 +15,28 @@ async function emailsDosAdmins() {
 }
 
 async function enviar({ to, subject, html }) {
-  if (!process.env.RESEND_API_KEY) {
-    console.log('[Email] RESEND_API_KEY não configurada — notificação ignorada.');
+  if (!process.env.BREVO_API_KEY) {
+    console.log('[Email] BREVO_API_KEY não configurada — notificação ignorada.');
     return;
   }
-  const lista = Array.isArray(to) ? to : [to];
+  const lista = (Array.isArray(to) ? to : [to]).filter(Boolean);
   if (lista.length === 0) return;
 
-  const res = await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'api-key':     process.env.BREVO_API_KEY,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from: FROM, to: lista, subject, html }),
+    body: JSON.stringify({
+      sender:      { name: SENDER_NAME, email: SENDER_EMAIL },
+      to:          lista.map(email => ({ email })),
+      subject,
+      htmlContent: html,
+    }),
   });
 
-  if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`Brevo ${res.status}: ${await res.text()}`);
 }
 
 // ── Templates base ────────────────────────────────────────────────────────────
