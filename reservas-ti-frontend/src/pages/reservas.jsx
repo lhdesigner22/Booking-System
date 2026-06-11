@@ -479,6 +479,17 @@ export default function Reservas() {
                             </td>
                             <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', gap: 6 }}>
+                                <motion.button
+                                  className="btn btn-ghost btn-sm"
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => setDetalhe(r)}
+                                  title="Abrir chat"
+                                  style={{ padding: '4px 10px' }}
+                                >
+                                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                  </svg>
+                                </motion.button>
                                 {r.status === 'pendente' && (
                                   <motion.button
                                     className="btn btn-ghost btn-sm"

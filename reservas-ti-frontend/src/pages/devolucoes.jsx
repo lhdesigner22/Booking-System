@@ -5,6 +5,7 @@ import Sidebar from '../components/Sidebar';
 import PageTransition from '../components/PageTransition.jsx';
 import SkeletonTable from '../components/SkeletonTable.jsx';
 import Modal from '../components/Modal.jsx';
+import ChatReserva from '../components/ChatReserva.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
 const fmtData = (d) => {
@@ -43,6 +44,7 @@ export default function Devolucoes() {
   const [filtro,       setFiltro]       = useState('aprovada');
   const [busca,        setBusca]        = useState('');
   const [confirmando,  setConfirmando]  = useState(null);
+  const [chatReserva,  setChatReserva]  = useState(null);
   const toast = useToast();
 
   useEffect(() => { carregarDevolucoes(); }, []);
@@ -298,23 +300,34 @@ export default function Devolucoes() {
                             </td>
                             <td><StatusBadge status={r.status} /></td>
                             <td>
-                              {r.status === 'aprovada' ? (
+                              <div className="actions">
                                 <motion.button
-                                  className="btn btn-primary btn-sm"
-                                  whileHover={{ scale: esteSubmetendo ? 1 : 1.03 }}
-                                  whileTap={{ scale: esteSubmetendo ? 1 : 0.97 }}
-                                  onClick={() => !esteSubmetendo && setConfirmando(r)}
-                                  disabled={esteSubmetendo}
-                                  style={{ whiteSpace: 'nowrap', opacity: esteSubmetendo ? 0.6 : 1 }}
+                                  className="btn btn-ghost btn-sm"
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => setChatReserva(r)}
+                                  title="Abrir chat"
+                                  style={{ padding: '4px 10px' }}
                                 >
-                                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                    <polyline points="20 6 9 17 4 12"/>
+                                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                                   </svg>
-                                  {esteSubmetendo ? 'Confirmando...' : 'Confirmar Devolução'}
                                 </motion.button>
-                              ) : (
-                                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>—</span>
-                              )}
+                                {r.status === 'aprovada' ? (
+                                  <motion.button
+                                    className="btn btn-primary btn-sm"
+                                    whileHover={{ scale: esteSubmetendo ? 1 : 1.03 }}
+                                    whileTap={{ scale: esteSubmetendo ? 1 : 0.97 }}
+                                    onClick={() => !esteSubmetendo && setConfirmando(r)}
+                                    disabled={esteSubmetendo}
+                                    style={{ whiteSpace: 'nowrap', opacity: esteSubmetendo ? 0.6 : 1 }}
+                                  >
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                      <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                    {esteSubmetendo ? 'Confirmando...' : 'Confirmar Devolução'}
+                                  </motion.button>
+                                ) : null}
+                              </div>
                             </td>
                           </motion.tr>
                         );
@@ -333,6 +346,22 @@ export default function Devolucoes() {
           )}
         </main>
       </div>
+
+      {/* Modal chat */}
+      <Modal open={!!chatReserva} onClose={() => setChatReserva(null)}
+        title="Chat da Reserva" subtitle={chatReserva?.equipamento_nome}>
+        {chatReserva && (
+          <div>
+            <ChatReserva reservaId={chatReserva.id} />
+            <div className="modal-footer" style={{ marginTop: 16 }}>
+              <motion.button className="btn btn-ghost" whileTap={{ scale: 0.97 }}
+                onClick={() => setChatReserva(null)}>
+                Fechar
+              </motion.button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Modal confirmação */}
       <Modal open={!!confirmando} onClose={fecharModal} title="Confirmar Devolução"
