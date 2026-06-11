@@ -2,7 +2,7 @@ import { pool } from '../config/database.js';
 
 const FRONTEND_URL   = process.env.FRONTEND_URL  || 'https://booking-reservas-ti.vercel.app';
 const SENDER_NAME    = process.env.EMAIL_FROM_NAME  || 'Booking System';
-const SENDER_EMAIL   = process.env.EMAIL_FROM_ADDR  || 'luiz.sanchez@colegioser.com';
+const SENDER_EMAIL   = process.env.EMAIL_FROM_ADDR  || 'booking.system@colegioser.com';
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
 function fmt(d) {
