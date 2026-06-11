@@ -26,6 +26,19 @@ router.post('/', authMiddleware, async (req, res) => {
   if (new Date(data_inicio) >= new Date(data_fim))
     return res.status(400).json({ error: 'data_inicio deve ser anterior à data_fim' });
 
+  // Bloqueia se o usuário tem reservas aprovadas com prazo vencido (não devolvidas)
+  const atrasadas = await pool.query(
+    `SELECT id FROM reservas
+     WHERE usuario_id = $1
+       AND status = 'aprovada'
+       AND data_fim < NOW()`,
+    [req.userId]
+  );
+  if (atrasadas.rows.length > 0)
+    return res.status(403).json({
+      error: `Você possui ${atrasadas.rows.length} reserva(s) em atraso. Devolva os equipamentos antes de fazer novas reservas.`,
+    });
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
