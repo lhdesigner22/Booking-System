@@ -235,7 +235,29 @@ export async function enviarLembretesDevoucao() {
   }
 }
 
-// ── 5. Alertas de atraso → admins (cron diário) ───────────────────────────────
+// ── 5. Reset de senha ─────────────────────────────────────────────────────────
+export async function enviarEmailResetSenha({ nome, email, resetUrl }) {
+  if (!email) return;
+  try {
+    await enviar({
+      to: [email],
+      subject: '🔑 Redefinição de senha — Booking System',
+      html: wrapEmail({
+        titulo:        '🔑 Redefinir Senha',
+        subtitulo:     `Olá, ${nome}`,
+        mensagemExtra: `Recebemos uma solicitação para redefinir a senha da sua conta. Clique no botão abaixo para criar uma nova senha. O link expira em <strong style="color:#F1F5F9">1 hora</strong>.<br><br>Se você não solicitou isso, ignore este e-mail.`,
+        linhas: [],
+        btnUrl:   resetUrl,
+        btnTexto: 'Redefinir Senha',
+      }),
+    });
+    console.log(`[Email] Reset de senha enviado para ${email}`);
+  } catch (err) {
+    console.error('[Email] enviarEmailResetSenha:', err.message);
+  }
+}
+
+// ── 6. Alertas de atraso → admins (cron diário) ───────────────────────────────
 export async function enviarAlertasAtraso() {
   try {
     const result = await pool.query(`
