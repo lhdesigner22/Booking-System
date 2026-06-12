@@ -76,6 +76,10 @@ export default function Admin() {
   const [buscaEquip,   setBuscaEquip]   = useState('');
   const [buscaData,    setBuscaData]    = useState('');
 
+  // Busca equipamentos (aba admin)
+  const [buscaEqAdmin,    setBuscaEqAdmin]    = useState('');
+  const [filtroStatusEq,  setFiltroStatusEq]  = useState('todos');
+
   // Chat reserva
   const [chatReserva, setChatReserva] = useState(null);
 
@@ -550,20 +554,42 @@ export default function Admin() {
               {/* ──────────────── ABA EQUIPAMENTOS ──────────────── */}
               {aba === 'equipamentos' && (
                 <>
-                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                      <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }}
+                        width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                      </svg>
+                      <input className="form-input" placeholder="Buscar por nome ou categoria..."
+                        value={buscaEqAdmin} onChange={e => setBuscaEqAdmin(e.target.value)}
+                        style={{ paddingLeft: 36, marginBottom: 0 }} />
+                    </div>
+                    <select className="form-input" value={filtroStatusEq} onChange={e => setFiltroStatusEq(e.target.value)}
+                      style={{ width: 160, marginBottom: 0 }}>
+                      <option value="todos">Todos os status</option>
+                      <option value="disponivel">Disponível</option>
+                      <option value="indisponivel">Indisponível</option>
+                    </select>
                     <motion.button className="btn btn-primary" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                       onClick={() => setShowModalEq(true)}>+ Novo equipamento</motion.button>
                   </div>
                   <div className="card" style={{ padding: 0 }}>
                     <div className="table-wrap">
-                      {loading ? <SkeletonTable rows={4} cols={5} /> : equipamentos.length === 0 ? (
-                        <div className="empty-state"><p>Nenhum equipamento cadastrado</p></div>
-                      ) : (
+                      {(() => {
+                        const eqFiltrados = equipamentos.filter(eq => {
+                          const q = buscaEqAdmin.toLowerCase();
+                          const passaBusca = !q || eq.nome?.toLowerCase().includes(q) || eq.categoria?.toLowerCase().includes(q) || eq.numero_serie?.toLowerCase().includes(q);
+                          const passaStatus = filtroStatusEq === 'todos' || (filtroStatusEq === 'disponivel' ? eq.disponivel : !eq.disponivel);
+                          return passaBusca && passaStatus;
+                        });
+                        return loading ? <SkeletonTable rows={4} cols={5} /> : eqFiltrados.length === 0 ? (
+                          <div className="empty-state"><p>{equipamentos.length === 0 ? 'Nenhum equipamento cadastrado' : 'Nenhum equipamento encontrado para os filtros aplicados'}</p></div>
+                        ) : (
                         <table>
                           <thead><tr><th>#</th><th>Nome</th><th>Categoria</th><th>Qtd</th><th>Status</th><th>Ações</th></tr></thead>
                           <tbody>
                             <AnimatePresence mode="popLayout">
-                              {equipamentos.map((eq, i) => (
+                              {eqFiltrados.map((eq, i) => (
                                 <motion.tr key={eq.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                                   exit={{ opacity: 0, x: 20 }} transition={{ delay: i * 0.04 }}>
                                   <td style={{ color: 'var(--text-muted)', fontSize: 12, fontFamily: 'monospace' }}>#{eq.id}</td>
@@ -606,7 +632,8 @@ export default function Admin() {
                             </AnimatePresence>
                           </tbody>
                         </table>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
                 </>
