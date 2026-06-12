@@ -12,6 +12,7 @@ import adminRoutes from './routes/admin.js';
 import devolucoesRoutes from './routes/devolucoes.js';
 import comentariosRoutes from './routes/comentarios.js';
 import retiradasRoutes from './routes/retiradas.js';
+import patrimoniosRoutes from './routes/patrimonios.js';
 import { authRateLimiter, apiRateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { pool } from './config/database.js';
@@ -26,6 +27,32 @@ async function runMigrations() {
     console.log('✔ Migração FK comentarios_usuario_id aplicada');
   } catch (err) {
     console.error('Erro na migração FK:', err.message);
+  }
+
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS patrimonios (
+        id             SERIAL PRIMARY KEY,
+        equipamento_id INTEGER NOT NULL REFERENCES equipamentos(id) ON DELETE CASCADE,
+        codigo         VARCHAR(100) NOT NULL UNIQUE,
+        descricao      VARCHAR(255),
+        criado_em      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS patrimonios_equipamento_idx ON patrimonios (equipamento_id);
+
+      CREATE TABLE IF NOT EXISTS reserva_patrimonios (
+        id            SERIAL PRIMARY KEY,
+        reserva_id    INTEGER NOT NULL REFERENCES reservas(id) ON DELETE CASCADE,
+        patrimonio_id INTEGER NOT NULL REFERENCES patrimonios(id) ON DELETE CASCADE,
+        atribuido_em  TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(reserva_id, patrimonio_id)
+      );
+      CREATE INDEX IF NOT EXISTS rp_reserva_idx    ON reserva_patrimonios (reserva_id);
+      CREATE INDEX IF NOT EXISTS rp_patrimonio_idx ON reserva_patrimonios (patrimonio_id);
+    `);
+    console.log('✔ Tabelas patrimonios e reserva_patrimonios criadas/verificadas');
+  } catch (err) {
+    console.error('Erro ao criar tabelas de patrimônios:', err.message);
   }
 
   try {
@@ -97,6 +124,7 @@ app.use('/api/reservas',     reservasRoutes);
 app.use('/api/admin',        adminRoutes);
 app.use('/api/devolucoes',  devolucoesRoutes);
 app.use('/api/retiradas',   retiradasRoutes);
+app.use('/api/patrimonios', patrimoniosRoutes);
 app.use('/api/reservas/:id/comentarios', comentariosRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));

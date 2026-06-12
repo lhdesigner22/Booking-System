@@ -43,8 +43,11 @@ export default function Devolucoes() {
   const [submittingId, setSubmittingId] = useState(null);
   const [filtro,       setFiltro]       = useState('aprovada');
   const [busca,        setBusca]        = useState('');
-  const [confirmando,  setConfirmando]  = useState(null);
-  const [chatReserva,  setChatReserva]  = useState(null);
+  const [confirmando,      setConfirmando]      = useState(null);
+  const [patConfirmando,   setPatConfirmando]   = useState([]); // patrimônios da reserva sendo devolvida
+  const [patSelecionados,  setPatSelecionados]  = useState([]); // checkboxes marcados
+  const [loadingPat,       setLoadingPat]       = useState(false);
+  const [chatReserva,      setChatReserva]      = useState(null);
   const toast = useToast();
 
   useEffect(() => { carregarDevolucoes(); }, []);
@@ -64,15 +67,34 @@ export default function Devolucoes() {
   const fecharModal = useCallback(() => {
     if (submittingId) return;
     setConfirmando(null);
+    setPatConfirmando([]);
+    setPatSelecionados([]);
   }, [submittingId]);
+
+  async function abrirConfirmarDevolucao(reserva) {
+    setConfirmando(reserva);
+    setPatSelecionados([]);
+    setLoadingPat(true);
+    try {
+      const res = await api.get(`/admin/reservas/${reserva.id}/patrimonios`);
+      setPatConfirmando(res.data);
+    } catch {
+      setPatConfirmando([]);
+    } finally {
+      setLoadingPat(false);
+    }
+  }
 
   async function confirmarDevolucao() {
     if (!confirmando) return;
     setSubmittingId(confirmando.id);
     try {
-      const res = await api.patch(`/devolucoes/${confirmando.id}/devolver`);
+      const payload = patConfirmando.length > 0 ? { patrimonios_ids: patSelecionados } : {};
+      const res = await api.patch(`/devolucoes/${confirmando.id}/devolver`, payload);
       toast({ message: res.data.mensagem || 'Devolução confirmada!', type: 'success' });
       setConfirmando(null);
+      setPatConfirmando([]);
+      setPatSelecionados([]);
       await carregarDevolucoes();
     } catch (err) {
       const msg = err.response?.data?.error || `Erro ${err.response?.status || ''}: falha ao confirmar devolução`;
@@ -317,7 +339,7 @@ export default function Devolucoes() {
                                     className="btn btn-primary btn-sm"
                                     whileHover={{ scale: esteSubmetendo ? 1 : 1.03 }}
                                     whileTap={{ scale: esteSubmetendo ? 1 : 0.97 }}
-                                    onClick={() => !esteSubmetendo && setConfirmando(r)}
+                                    onClick={() => !esteSubmetendo && abrirConfirmarDevolucao(r)}
                                     disabled={esteSubmetendo}
                                     style={{ whiteSpace: 'nowrap', opacity: esteSubmetendo ? 0.6 : 1 }}
                                   >
@@ -386,6 +408,38 @@ export default function Devolucoes() {
                 </div>
               ))}
             </div>
+
+            {/* Confirmação de patrimônios */}
+            {loadingPat ? (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Carregando patrimônios...</p>
+            ) : patConfirmando.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                  Confirme os patrimônios devolvidos ({patSelecionados.length}/{patConfirmando.length})
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {patConfirmando.map(p => {
+                    const sel = patSelecionados.includes(p.id);
+                    return (
+                      <label key={p.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                        borderRadius: 8, cursor: 'pointer',
+                        border: `1px solid ${sel ? 'rgba(34,197,94,0.5)' : 'var(--border)'}`,
+                        background: sel ? 'rgba(34,197,94,0.08)' : 'var(--surface-2)',
+                        transition: 'all 0.15s',
+                      }}>
+                        <input type="checkbox" checked={sel}
+                          onChange={() => setPatSelecionados(prev => sel ? prev.filter(x => x !== p.id) : [...prev, p.id])}
+                          style={{ accentColor: '#22C55E', width: 15, height: 15 }} />
+                        <span style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{p.codigo}</span>
+                        {p.descricao && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.descricao}</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
               O equipamento será marcado como <strong>disponível</strong> e voltará ao estoque imediatamente.
             </p>
@@ -396,8 +450,9 @@ export default function Devolucoes() {
               </motion.button>
               <motion.button className="btn btn-primary" whileHover={{ scale: submitting ? 1 : 1.02 }}
                 whileTap={{ scale: submitting ? 1 : 0.97 }}
-                onClick={confirmarDevolucao} disabled={submitting}
-                style={{ opacity: submitting ? 0.7 : 1 }}>
+                onClick={confirmarDevolucao}
+                disabled={submitting || (!loadingPat && patConfirmando.length > 0 && patSelecionados.length !== patConfirmando.length)}
+                style={{ opacity: (submitting || (!loadingPat && patConfirmando.length > 0 && patSelecionados.length !== patConfirmando.length)) ? 0.6 : 1 }}>
                 <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>

@@ -84,6 +84,21 @@ export default function Admin() {
   const [novoEq,       setNovoEq]       = useState(EMPTY_EQ);
   const [editEq,       setEditEq]       = useState(null);
 
+  // Patrimônios
+  const [patrimonioEq,        setPatrimonioEq]        = useState(null); // equipamento cujos patrimônios estão sendo gerenciados
+  const [patrimonios,         setPatrimonios]         = useState([]);
+  const [loadingPat,          setLoadingPat]          = useState(false);
+  const [novoPat,             setNovoPat]             = useState({ codigo: '', descricao: '' });
+  const [editPat,             setEditPat]             = useState(null);
+  const [submittingPat,       setSubmittingPat]       = useState(false);
+
+  // Modal aprovação com patrimônios
+  const [aprovarReserva,      setAprovarReserva]      = useState(null);
+  const [patrimoniosDisp,     setPatrimoniosDisp]     = useState([]);
+  const [patrimoniosSel,      setPatrimoniosSel]      = useState([]);
+  const [loadingAprovar,      setLoadingAprovar]      = useState(false);
+  const [submittingAprovar,   setSubmittingAprovar]   = useState(false);
+
   // Modais usuário
   const [showModalUser, setShowModalUser] = useState(false);
   const [novoUser,      setNovoUser]      = useState({ nome: '', email: '', senha: '', admin: false, setor: '' });
@@ -113,12 +128,107 @@ export default function Admin() {
   }
 
   /* ── Reservas ──────────────────────────────────────────── */
-  async function atualizarStatus(id, status) {
+  async function atualizarStatus(id, status, patrimonios_ids) {
     try {
-      await api.patch(`/admin/reservas/${id}/status`, { status });
+      await api.patch(`/admin/reservas/${id}/status`, { status, patrimonios_ids });
       toast({ message: `Reserva ${STATUS_LABEL[status].toLowerCase()} com sucesso!` });
       carregarDados();
-    } catch { toast({ message: 'Erro ao atualizar status', type: 'error' }); }
+    } catch (err) { toast({ message: err.response?.data?.error || 'Erro ao atualizar status', type: 'error' }); }
+  }
+
+  async function abrirModalAprovar(reserva) {
+    setAprovarReserva(reserva);
+    setPatrimoniosSel([]);
+    setLoadingAprovar(true);
+    try {
+      const res = await api.get(`/patrimonios?equipamento_id=${reserva.equipamento_id}`);
+      setPatrimoniosDisp(res.data.filter(p => !p.em_uso));
+    } catch {
+      setPatrimoniosDisp([]);
+    } finally {
+      setLoadingAprovar(false);
+    }
+  }
+
+  async function confirmarAprovacao() {
+    if (!aprovarReserva) return;
+    setSubmittingAprovar(true);
+    try {
+      await atualizarStatus(aprovarReserva.id, 'aprovada', patrimoniosSel.length > 0 ? patrimoniosSel : undefined);
+      setAprovarReserva(null);
+    } finally {
+      setSubmittingAprovar(false);
+    }
+  }
+
+  function togglePatrimonio(id) {
+    setPatrimoniosSel(prev =>
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    );
+  }
+
+  /* ── Patrimônios ─────────────────────────────────────── */
+  async function abrirPatrimonios(eq) {
+    setPatrimonioEq(eq);
+    setNovoPat({ codigo: '', descricao: '' });
+    setEditPat(null);
+    setLoadingPat(true);
+    try {
+      const res = await api.get(`/patrimonios?equipamento_id=${eq.id}`);
+      setPatrimonios(res.data);
+    } catch {
+      setPatrimonios([]);
+    } finally {
+      setLoadingPat(false);
+    }
+  }
+
+  async function criarPatrimonio(e) {
+    e.preventDefault();
+    if (!novoPat.codigo.trim()) return toast({ message: 'Código é obrigatório', type: 'error' });
+    setSubmittingPat(true);
+    try {
+      await api.post('/patrimonios', { equipamento_id: patrimonioEq.id, ...novoPat });
+      setNovoPat({ codigo: '', descricao: '' });
+      const res = await api.get(`/patrimonios?equipamento_id=${patrimonioEq.id}`);
+      setPatrimonios(res.data);
+      toast({ message: 'Patrimônio cadastrado!' });
+    } catch (err) {
+      toast({ message: err.response?.data?.error || 'Erro ao cadastrar patrimônio', type: 'error' });
+    } finally { setSubmittingPat(false); }
+  }
+
+  async function salvarEdicaoPat(e) {
+    e.preventDefault();
+    if (!editPat?.codigo?.trim()) return toast({ message: 'Código é obrigatório', type: 'error' });
+    setSubmittingPat(true);
+    try {
+      await api.put(`/patrimonios/${editPat.id}`, { codigo: editPat.codigo, descricao: editPat.descricao });
+      setEditPat(null);
+      const res = await api.get(`/patrimonios?equipamento_id=${patrimonioEq.id}`);
+      setPatrimonios(res.data);
+      toast({ message: 'Patrimônio atualizado!' });
+    } catch (err) {
+      toast({ message: err.response?.data?.error || 'Erro ao atualizar patrimônio', type: 'error' });
+    } finally { setSubmittingPat(false); }
+  }
+
+  async function excluirPatrimonio(pat) {
+    setConfirmDlg({
+      open: true,
+      title: 'Excluir patrimônio',
+      message: `Excluir o patrimônio "${pat.codigo}"? Esta ação não pode ser desfeita.`,
+      action: async () => {
+        try {
+          await api.delete(`/patrimonios/${pat.id}`);
+          const res = await api.get(`/patrimonios?equipamento_id=${patrimonioEq.id}`);
+          setPatrimonios(res.data);
+          toast({ message: 'Patrimônio removido.', type: 'info' });
+        } catch (err) {
+          toast({ message: err.response?.data?.error || 'Erro ao excluir patrimônio', type: 'error' });
+        }
+      },
+    });
   }
 
   /* ── Equipamentos ──────────────────────────────────────── */
@@ -420,7 +530,7 @@ export default function Admin() {
                                     {r.status === 'pendente' && (
                                       <div className="actions">
                                         <motion.button className="btn btn-success btn-sm" whileTap={{ scale: 0.95 }}
-                                          onClick={() => atualizarStatus(r.id, 'aprovada')}>✓ Aprovar</motion.button>
+                                          onClick={() => abrirModalAprovar(r)}>✓ Aprovar</motion.button>
                                         <motion.button className="btn btn-danger btn-sm" whileTap={{ scale: 0.95 }}
                                           onClick={() => atualizarStatus(r.id, 'recusada')}>✕ Recusar</motion.button>
                                       </div>
@@ -481,6 +591,8 @@ export default function Admin() {
                                   </span></td>
                                   <td>
                                     <div className="actions">
+                                      <motion.button className="btn btn-ghost btn-sm" whileTap={{ scale: 0.95 }}
+                                        onClick={() => abrirPatrimonios(eq)}>Patrimônios</motion.button>
                                       <motion.button className="btn btn-ghost btn-sm" whileTap={{ scale: 0.95 }}
                                         onClick={() => setEditEq({ ...eq, numero_serie: eq.numero_serie || '', categoria: eq.categoria || '', descricao: eq.descricao || '' })}>Editar</motion.button>
                                       <motion.button className="btn btn-ghost btn-sm" whileTap={{ scale: 0.95 }}
@@ -925,6 +1037,163 @@ export default function Admin() {
         onClose={() => setConfirmDlg(d => ({ ...d, open: false }))}
         onConfirm={() => confirmDlg.action?.()}
       />
+
+      {/* ── Modal Aprovação com Patrimônios ── */}
+      <Modal open={!!aprovarReserva} onClose={() => !submittingAprovar && setAprovarReserva(null)}
+        title="Aprovar Reserva" subtitle={aprovarReserva ? `${aprovarReserva.equipamento_nome} — ${aprovarReserva.usuario_nome}` : ''}>
+        {aprovarReserva && (
+          <div>
+            <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                ['Equipamento', aprovarReserva.equipamento_nome],
+                ['Quantidade',  aprovarReserva.quantidade ?? 1],
+                ['Usuário',     aprovarReserva.usuario_nome],
+                ['Período',     `${new Date(aprovarReserva.data_inicio).toLocaleString('pt-BR')} → ${new Date(aprovarReserva.data_fim).toLocaleString('pt-BR')}`],
+              ].map(([k, v]) => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>{k}</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{v}</span>
+                </div>
+              ))}
+            </div>
+
+            {loadingAprovar ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, padding: '12px 0' }}>Carregando patrimônios...</p>
+            ) : patrimoniosDisp.length === 0 ? (
+              <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 20, fontSize: 13, color: 'var(--text-secondary)' }}>
+                Nenhum patrimônio cadastrado para este equipamento. A reserva será aprovada diretamente.
+              </div>
+            ) : (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                  Selecione {aprovarReserva.quantidade ?? 1} patrimônio(s) a liberar
+                  <span style={{ marginLeft: 8, fontSize: 12, color: patrimoniosSel.length === (aprovarReserva.quantidade ?? 1) ? '#4ADE80' : 'var(--text-muted)', fontWeight: 500 }}>
+                    ({patrimoniosSel.length}/{aprovarReserva.quantidade ?? 1} selecionado{patrimoniosSel.length !== 1 ? 's' : ''})
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
+                  {patrimoniosDisp.map(p => {
+                    const sel = patrimoniosSel.includes(p.id);
+                    const maxAtingido = !sel && patrimoniosSel.length >= (aprovarReserva.quantidade ?? 1);
+                    return (
+                      <label key={p.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                        borderRadius: 8, cursor: maxAtingido ? 'not-allowed' : 'pointer',
+                        border: `1px solid ${sel ? 'rgba(34,197,94,0.5)' : 'var(--border)'}`,
+                        background: sel ? 'rgba(34,197,94,0.08)' : 'var(--surface-2)',
+                        opacity: maxAtingido ? 0.5 : 1, transition: 'all 0.15s',
+                      }}>
+                        <input type="checkbox" checked={sel} disabled={maxAtingido}
+                          onChange={() => togglePatrimonio(p.id)}
+                          style={{ accentColor: '#22C55E', width: 15, height: 15, cursor: maxAtingido ? 'not-allowed' : 'pointer' }} />
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{p.codigo}</span>
+                          {p.descricao && <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>{p.descricao}</span>}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="modal-footer">
+              <motion.button className="btn btn-ghost" whileTap={{ scale: 0.97 }}
+                onClick={() => setAprovarReserva(null)} disabled={submittingAprovar}>Cancelar</motion.button>
+              <motion.button className="btn btn-success" whileTap={{ scale: 0.97 }}
+                disabled={submittingAprovar || (!loadingAprovar && patrimoniosDisp.length > 0 && patrimoniosSel.length !== (aprovarReserva.quantidade ?? 1))}
+                onClick={confirmarAprovacao}
+                style={{ opacity: (submittingAprovar || (!loadingAprovar && patrimoniosDisp.length > 0 && patrimoniosSel.length !== (aprovarReserva.quantidade ?? 1))) ? 0.6 : 1 }}>
+                {submittingAprovar ? 'Aprovando...' : '✓ Confirmar Aprovação'}
+              </motion.button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ── Modal Gestão de Patrimônios ── */}
+      <Modal open={!!patrimonioEq} onClose={() => { setPatrimonioEq(null); setEditPat(null); }}
+        title="Patrimônios" subtitle={patrimonioEq?.nome}>
+        {patrimonioEq && (
+          <div>
+            {/* Formulário adicionar */}
+            {!editPat && (
+              <form onSubmit={criarPatrimonio} style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                <input className="form-input" placeholder="Código de patrimônio *" style={{ flex: 2, minWidth: 120, marginBottom: 0 }}
+                  value={novoPat.codigo} onChange={e => setNovoPat({ ...novoPat, codigo: e.target.value })} />
+                <input className="form-input" placeholder="Descrição (opcional)" style={{ flex: 3, minWidth: 140, marginBottom: 0 }}
+                  value={novoPat.descricao} onChange={e => setNovoPat({ ...novoPat, descricao: e.target.value })} />
+                <motion.button type="submit" className="btn btn-primary btn-sm" disabled={submittingPat} whileTap={{ scale: 0.97 }}
+                  style={{ whiteSpace: 'nowrap' }}>
+                  {submittingPat ? '...' : '+ Adicionar'}
+                </motion.button>
+              </form>
+            )}
+
+            {/* Formulário editar */}
+            {editPat && (
+              <form onSubmit={salvarEdicaoPat} style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', background: 'rgba(34,197,94,0.06)', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(34,197,94,0.2)' }}>
+                <input className="form-input" placeholder="Código *" style={{ flex: 2, minWidth: 120, marginBottom: 0 }}
+                  value={editPat.codigo} onChange={e => setEditPat({ ...editPat, codigo: e.target.value })} />
+                <input className="form-input" placeholder="Descrição" style={{ flex: 3, minWidth: 140, marginBottom: 0 }}
+                  value={editPat.descricao || ''} onChange={e => setEditPat({ ...editPat, descricao: e.target.value })} />
+                <motion.button type="submit" className="btn btn-primary btn-sm" disabled={submittingPat} whileTap={{ scale: 0.97 }}>Salvar</motion.button>
+                <motion.button type="button" className="btn btn-ghost btn-sm" whileTap={{ scale: 0.97 }} onClick={() => setEditPat(null)}>✕</motion.button>
+              </form>
+            )}
+
+            {/* Lista */}
+            {loadingPat ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Carregando...</p>
+            ) : patrimonios.length === 0 ? (
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, padding: '20px 0' }}>
+                Nenhum patrimônio cadastrado para este equipamento.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
+                {patrimonios.map(p => (
+                  <div key={p.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 12px', borderRadius: 8,
+                    background: 'var(--surface-2)', border: '1px solid var(--border)',
+                  }}>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', flex: 1 }}>{p.codigo}</span>
+                    {p.descricao && <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 2 }}>{p.descricao}</span>}
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 12,
+                      color: p.em_uso ? '#FCD34D' : '#4ADE80',
+                      background: p.em_uso ? 'rgba(252,211,77,0.1)' : 'rgba(74,222,128,0.1)',
+                      border: `1px solid ${p.em_uso ? 'rgba(252,211,77,0.3)' : 'rgba(74,222,128,0.3)'}`,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {p.em_uso ? 'Em uso' : 'Disponível'}
+                    </span>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <motion.button className="btn btn-ghost btn-sm" whileTap={{ scale: 0.95 }}
+                        onClick={() => setEditPat({ ...p })} disabled={p.em_uso} style={{ opacity: p.em_uso ? 0.4 : 1 }}>
+                        Editar
+                      </motion.button>
+                      <motion.button className="btn btn-danger btn-sm" whileTap={{ scale: 0.95 }}
+                        onClick={() => excluirPatrimonio(p)} disabled={p.em_uso} style={{ opacity: p.em_uso ? 0.4 : 1 }}>
+                        Excluir
+                      </motion.button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-muted)', textAlign: 'right' }}>
+              {patrimonios.length} patrimônio{patrimonios.length !== 1 ? 's' : ''} cadastrado{patrimonios.length !== 1 ? 's' : ''}
+            </div>
+
+            <div className="modal-footer">
+              <motion.button className="btn btn-ghost" whileTap={{ scale: 0.97 }}
+                onClick={() => { setPatrimonioEq(null); setEditPat(null); }}>Fechar</motion.button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </PageTransition>
   );
 }

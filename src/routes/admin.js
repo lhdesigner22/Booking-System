@@ -110,26 +110,106 @@ router.get('/reservas', adminMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/admin/reservas/:id/patrimonios — patrimônios vinculados a uma reserva
+router.get('/reservas/:id/patrimonios', adminMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT p.id, p.codigo, p.descricao
+       FROM reserva_patrimonios rp
+       JOIN patrimonios p ON p.id = rp.patrimonio_id
+       WHERE rp.reserva_id = $1`,
+      [req.params.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PATCH /api/admin/reservas/:id/status — admin aprova/recusa qualquer reserva
 router.patch('/reservas/:id/status', adminMiddleware, async (req, res) => {
-  const { status } = req.body;
+  const { status, patrimonios_ids } = req.body;
   const statusValidos = ['pendente', 'aprovada', 'cancelada', 'recusada'];
 
   if (!statusValidos.includes(status)) {
     return res.status(400).json({ error: `Status inválido. Use: ${statusValidos.join(', ')}` });
   }
 
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
+    await client.query('BEGIN');
+
+    const reservaRes = await client.query(
+      `SELECT r.*, e.nome AS equipamento_nome, u.nome AS usuario_nome, u.email AS usuario_email
+       FROM reservas r
+       JOIN equipamentos e ON r.equipamento_id = e.id
+       JOIN usuarios u ON r.usuario_id = u.id
+       WHERE r.id = $1`,
+      [req.params.id]
+    );
+    if (reservaRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Reserva não encontrada' });
+    }
+    const reserva = reservaRes.rows[0];
+
+    if (status === 'aprovada') {
+      const totalPat = await client.query(
+        'SELECT COUNT(*)::INTEGER AS count FROM patrimonios WHERE equipamento_id = $1',
+        [reserva.equipamento_id]
+      );
+      if (totalPat.rows[0].count > 0) {
+        if (!Array.isArray(patrimonios_ids) || patrimonios_ids.length === 0)
+          return (() => { client.query('ROLLBACK'); return res.status(400).json({ error: 'Selecione os patrimônios a serem liberados' }); })();
+
+        if (patrimonios_ids.length !== reserva.quantidade) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            error: `Selecione exatamente ${reserva.quantidade} patrimônio(s). Selecionado(s): ${patrimonios_ids.length}`,
+          });
+        }
+
+        const check = await client.query(
+          `SELECT p.id, p.codigo,
+                  EXISTS(
+                    SELECT 1 FROM reserva_patrimonios rp2
+                    JOIN reservas r2 ON r2.id = rp2.reserva_id
+                    WHERE rp2.patrimonio_id = p.id AND r2.status = 'aprovada'
+                  ) AS em_uso
+           FROM patrimonios p
+           WHERE p.id = ANY($1::int[]) AND p.equipamento_id = $2`,
+          [patrimonios_ids, reserva.equipamento_id]
+        );
+
+        if (check.rows.length !== patrimonios_ids.length) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Um ou mais patrimônios inválidos para este equipamento' });
+        }
+        const emUso = check.rows.filter(p => p.em_uso);
+        if (emUso.length > 0) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({ error: `Patrimônio(s) em uso: ${emUso.map(p => p.codigo).join(', ')}` });
+        }
+
+        for (const pid of patrimonios_ids) {
+          await client.query(
+            'INSERT INTO reserva_patrimonios (reserva_id, patrimonio_id) VALUES ($1, $2)',
+            [req.params.id, pid]
+          );
+        }
+      }
+    }
+
+    const result = await client.query(
       `UPDATE reservas r SET status = $1
        FROM equipamentos e, usuarios u
        WHERE r.id = $2 AND r.equipamento_id = e.id AND r.usuario_id = u.id
        RETURNING r.*, e.nome AS equipamento_nome, u.nome AS usuario_nome, u.email AS usuario_email`,
       [status, req.params.id]
     );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Reserva não encontrada' });
-    }
+
+    await client.query('COMMIT');
+
     const r = result.rows[0];
     notificarUsuarioStatusReserva({
       nome: r.usuario_nome, email: r.usuario_email,
@@ -138,7 +218,10 @@ router.patch('/reservas/:id/status', adminMiddleware, async (req, res) => {
     });
     res.json(r);
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 

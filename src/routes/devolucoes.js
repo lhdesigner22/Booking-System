@@ -28,11 +28,11 @@ router.get('/', adminMiddleware, async (req, res) => {
 
 // PATCH /api/devolucoes/:id/devolver — confirma devolução e libera equipamento
 router.patch('/:id/devolver', adminMiddleware, async (req, res) => {
+  const { patrimonios_ids } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // Busca a reserva garantindo que está aprovada
     const reserva = await client.query(
       `SELECT r.*, e.nome AS equipamento_nome
        FROM reservas r
@@ -48,13 +48,26 @@ router.patch('/:id/devolver', adminMiddleware, async (req, res) => {
 
     const { equipamento_id } = reserva.rows[0];
 
-    // Atualiza status da reserva para "devolvida"
+    // Valida patrimônios se houver vinculados
+    const vinculados = await client.query(
+      'SELECT patrimonio_id FROM reserva_patrimonios WHERE reserva_id = $1',
+      [req.params.id]
+    );
+
+    if (vinculados.rows.length > 0) {
+      if (!Array.isArray(patrimonios_ids) || patrimonios_ids.length !== vinculados.rows.length) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: `Confirme todos os ${vinculados.rows.length} patrimônio(s) devolvidos` });
+      }
+      // Libera patrimônios removendo o vínculo
+      await client.query('DELETE FROM reserva_patrimonios WHERE reserva_id = $1', [req.params.id]);
+    }
+
     await client.query(
       `UPDATE reservas SET status = 'devolvida', devolvida_em = NOW() WHERE id = $1`,
       [req.params.id]
     );
 
-    // Libera o equipamento (disponivel = true)
     await client.query(
       `UPDATE equipamentos SET disponivel = true WHERE id = $1`,
       [equipamento_id]
