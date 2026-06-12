@@ -618,7 +618,19 @@ export default function Admin() {
                                   <td>
                                     <div className="actions">
                                       <motion.button className="btn btn-ghost btn-sm" whileTap={{ scale: 0.95 }}
-                                        onClick={() => abrirPatrimonios(eq)}>Patrimônios</motion.button>
+                                        onClick={() => abrirPatrimonios(eq)}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                        Patrimônios
+                                        <span style={{
+                                          background: eq.total_patrimonios > 0 ? 'rgba(34,197,94,0.15)' : 'var(--surface-2)',
+                                          color: eq.total_patrimonios > 0 ? '#4ADE80' : 'var(--text-muted)',
+                                          border: `1px solid ${eq.total_patrimonios > 0 ? 'rgba(34,197,94,0.3)' : 'var(--border)'}`,
+                                          borderRadius: 10, fontSize: 11, fontWeight: 700,
+                                          padding: '1px 7px', minWidth: 20, textAlign: 'center',
+                                        }}>
+                                          {eq.total_patrimonios ?? 0}
+                                        </span>
+                                      </motion.button>
                                       <motion.button className="btn btn-ghost btn-sm" whileTap={{ scale: 0.95 }}
                                         onClick={() => setEditEq({ ...eq, numero_serie: eq.numero_serie || '', categoria: eq.categoria || '', descricao: eq.descricao || '' })}>Editar</motion.button>
                                       <motion.button className="btn btn-ghost btn-sm" whileTap={{ scale: 0.95 }}

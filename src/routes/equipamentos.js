@@ -26,7 +26,8 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT e.*,
-             GREATEST(e.quantidade_total - COALESCE(em_uso.total, 0), 0)::INTEGER AS quantidade_disponivel
+             GREATEST(e.quantidade_total - COALESCE(em_uso.total, 0), 0)::INTEGER AS quantidade_disponivel,
+             COALESCE(pat.total, 0)::INTEGER AS total_patrimonios
       FROM equipamentos e
       LEFT JOIN (
         SELECT equipamento_id, SUM(quantidade)::INTEGER AS total
@@ -34,6 +35,11 @@ router.get('/', authMiddleware, async (req, res) => {
         WHERE status = 'aprovada'
         GROUP BY equipamento_id
       ) em_uso ON em_uso.equipamento_id = e.id
+      LEFT JOIN (
+        SELECT equipamento_id, COUNT(*)::INTEGER AS total
+        FROM patrimonios
+        GROUP BY equipamento_id
+      ) pat ON pat.equipamento_id = e.id
       ORDER BY e.nome
     `);
     res.json(result.rows);
